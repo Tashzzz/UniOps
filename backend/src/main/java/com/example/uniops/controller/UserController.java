@@ -46,17 +46,28 @@ public class UserController {
     public ResponseEntity<?> loginOrRegister(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         String name  = body.get("name");
+        String role  = body.get("role");
 
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
         }
 
-        user userEntity = userRepository.findByEmail(email.trim().toLowerCase())
+        String normalizedEmail = email.trim().toLowerCase();
+        user.Role requestedRole = parseRole(role);
+
+        user userEntity = userRepository.findByEmail(normalizedEmail)
+            .map(existing -> {
+                if (requestedRole != null && existing.getRole() != requestedRole) {
+                    existing.setRole(requestedRole);
+                    return userRepository.save(existing);
+                }
+                return existing;
+            })
             .orElseGet(() -> {
                 user newUser = user.builder()
-                    .email(email.trim().toLowerCase())
-                    .name(name != null ? name : email.split("@")[0])
-                    .role(user.Role.STUDENT)
+                    .email(normalizedEmail)
+                    .name(name != null ? name : normalizedEmail.split("@")[0])
+                    .role(requestedRole != null ? requestedRole : user.Role.STUDENT)
                     .provider("local")
                     .providerId("local-" + System.currentTimeMillis())
                     .build();
@@ -69,5 +80,16 @@ public class UserController {
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
+    }
+
+    private user.Role parseRole(String role) {
+        if (role == null || role.isBlank()) {
+            return null;
+        }
+        try {
+            return user.Role.valueOf(role.trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 }

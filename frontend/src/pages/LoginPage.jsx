@@ -20,12 +20,13 @@ export default function LoginPage() {
   const [error,    setError]   = useState('')
   const [loading,  setLoading] = useState(false)
 
-  const doLogin = async (emailVal) => {
+  const doLogin = async (emailVal, roleVal) => {
     setError(''); setLoading(true)
     try {
       const res = await axios.post('/api/auth/login-or-register', {
         email: emailVal,
         name: emailVal.split('@')[0],
+        role: roleVal,
       })
       login(res.data)
       navigate('/dashboard')
@@ -137,7 +138,7 @@ export default function LoginPage() {
           {DEMO_ACCOUNTS.map(acc => (
             <button
               key={acc.email}
-              onClick={() => doLogin(acc.email)}
+              onClick={() => doLogin(acc.email, acc.role)}
               disabled={loading}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
