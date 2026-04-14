@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
 // import Dashboard from './pages/Dashboard'
-// import ResourcesPage from './pages/ResourcesPage'
+import ResourcesPage from './pages/ResourcesPage'
 // import BookingsPage from './pages/BookingsPage'
 // import TicketsPage from './pages/TicketsPage'
 // import NotificationsPage from './pages/NotificationsPage'
@@ -19,8 +19,9 @@ function AppLayout() {
       <Navbar />
       <main className="main-content">
         <Routes>
-          {/* <Route path="/dashboard"     element={<Dashboard />} />
           <Route path="/resources"     element={<ResourcesPage />} />
+          {/* <Route path="/dashboard"     element={<Dashboard />} />
+          
           <Route path="/bookings"      element={<BookingsPage />} />
           <Route path="/tickets"       element={<TicketsPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
