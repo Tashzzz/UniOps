@@ -38,6 +38,9 @@ public class TicketService {
     }
 
     public Ticket createTicket(Ticket ticket) {
+        if (ticket.getStatus() == null) {
+            ticket.setStatus(TicketStatus.OPEN);
+        }
         return ticketRepository.save(ticket);
     }
 

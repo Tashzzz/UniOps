@@ -38,6 +38,9 @@ public class TicketController {
 
     @PostMapping
     public ResponseEntity<Ticket> createTicket(@Valid @RequestBody Ticket ticket) {
+        if (ticket.getStatus() == null) {
+            ticket.setStatus(TicketStatus.OPEN);
+        }
         return ResponseEntity.status(201).body(ticketService.createTicket(ticket));
     }
 

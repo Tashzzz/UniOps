@@ -99,12 +99,20 @@ export default function TicketsPage() {
         description: form.description.trim(),
         priority: form.priority,
         category: form.category || null,
+        status: 'OPEN',
       })
 
       if (attachments.length > 0 && created?.data?.id) {
-        await ticketService.uploadAttachments(created.data.id, attachments)
+        try {
+          await ticketService.uploadAttachments(created.data.id, attachments)
+        } catch {
+          toast.error('Ticket created, but image upload failed')
+        }
       }
 
+      if (created?.data) {
+        setTickets((prev) => [created.data, ...prev])
+      }
       toast.success('Ticket created')
       setShowModal(false)
       resetForm()
