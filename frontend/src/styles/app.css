@@ -313,6 +313,11 @@ tbody tr:hover td { background: #fafbff; }
 }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--red);
+}
 
 /* ── Modal ───────────────────────────────────────────── */
 .modal-backdrop {
@@ -469,6 +474,7 @@ tbody tr:hover td { background: #fafbff; }
   border-color: var(--blue); background: #eef1fe; color: var(--blue);
 }
 .file-upload-area input { display: none; }
+.file-upload-area label { cursor: pointer; font-weight: 600; }
 
 /* ── Type chip ───────────────────────────────────────── */
 .type-chip {
