@@ -1,5 +1,6 @@
 package com.example.uniops.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -49,6 +50,17 @@ public class TicketService {
         Ticket ticket = getTicketById(id);
         String fileName = fileUploadUtil.saveFile("tickets", file);
         ticket.setAttachmentUrl("/uploads/tickets/" + fileName);
+        return ticketRepository.save(ticket);
+    }
+
+    public Ticket uploadAttachments(Long id, List<MultipartFile> files) throws java.io.IOException {
+        Ticket ticket = getTicketById(id);
+        List<String> paths = new ArrayList<>();
+        for (MultipartFile file : files) {
+            String fileName = fileUploadUtil.saveFile("tickets", file);
+            paths.add("/uploads/tickets/" + fileName);
+        }
+        ticket.setAttachmentUrl(String.join(",", paths));
         return ticketRepository.save(ticket);
     }
 }

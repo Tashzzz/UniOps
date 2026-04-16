@@ -10,6 +10,13 @@ const ticketService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  uploadAttachments: (id, files) => {
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    return api.post(`/tickets/${id}/attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 export default ticketService

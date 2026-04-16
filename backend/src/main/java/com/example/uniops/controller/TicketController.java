@@ -47,4 +47,17 @@ public class TicketController {
             @RequestParam("file") MultipartFile file) throws IOException {
         return ResponseEntity.ok(ticketService.uploadAttachment(id, file));
     }
+
+    @PostMapping("/{id}/attachments")
+    public ResponseEntity<Ticket> uploadAttachments(
+            @PathVariable Long id,
+            @RequestParam("files") List<MultipartFile> files) throws IOException {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("At least one image is required");
+        }
+        if (files.size() > 3) {
+            throw new IllegalArgumentException("You can upload up to 3 images only");
+        }
+        return ResponseEntity.ok(ticketService.uploadAttachments(id, files));
+    }
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { CircleAlert, Plus, Search, Ticket } from 'lucide-react'
+import { CircleAlert, ImageUp, Plus, Search, Ticket, X } from 'lucide-react'
 import ticketService from '../services/ticketService'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH']
@@ -22,7 +22,7 @@ export default function TicketsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
-  const [attachment, setAttachment] = useState(null)
+  const [attachments, setAttachments] = useState([])
   const [submitting, setSubmitting] = useState(false)
 
   const loadTickets = () => {
@@ -55,13 +55,35 @@ export default function TicketsPage() {
   const resetForm = () => {
     setForm(initialForm)
     setErrors({})
-    setAttachment(null)
+    setAttachments([])
   }
 
   const handleChange = (key, value) => {
     const next = { ...form, [key]: value }
     setForm(next)
     setErrors(validate(next))
+  }
+
+  const handleFiles = (fileList) => {
+    const selected = Array.from(fileList || [])
+    if (selected.length === 0) return
+
+    const nonImages = selected.filter((file) => !file.type.startsWith('image/'))
+    if (nonImages.length > 0) {
+      toast.error('Only image files are allowed')
+      return
+    }
+
+    const next = [...attachments, ...selected]
+    if (next.length > 3) {
+      toast.error('You can upload up to 3 images only')
+      return
+    }
+    setAttachments(next)
+  }
+
+  const removeAttachment = (indexToRemove) => {
+    setAttachments(attachments.filter((_, index) => index !== indexToRemove))
   }
 
   const handleSubmit = async (e) => {
@@ -79,8 +101,8 @@ export default function TicketsPage() {
         category: form.category || null,
       })
 
-      if (attachment && created?.data?.id) {
-        await ticketService.uploadAttachment(created.data.id, attachment)
+      if (attachments.length > 0 && created?.data?.id) {
+        await ticketService.uploadAttachments(created.data.id, attachments)
       }
 
       toast.success('Ticket created')
@@ -279,16 +301,46 @@ export default function TicketsPage() {
 
               <div className="form-group">
                 <label>Attachment (optional)</label>
-                <div className="file-upload-area">
+                <div className="file-upload-area ticket-upload-area">
                   <input
                     type="file"
-                    onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => {
+                      handleFiles(e.target.files)
+                      e.target.value = ''
+                    }}
                     id="ticketAttachmentInput"
                   />
                   <label htmlFor="ticketAttachmentInput">
-                    {attachment ? attachment.name : 'Upload a file'}
+                    <span className="ticket-upload-icon">
+                      <ImageUp size={16} />
+                    </span>
+                    <span style={{ display: 'block', fontWeight: 700, color: 'var(--text-2)' }}>
+                      Drag and drop images here
+                    </span>
+                    <span style={{ fontSize: 12 }}>
+                      Or click to browse from your device (Max 3 files, PNG/JPG)
+                    </span>
                   </label>
                 </div>
+                {attachments.length > 0 && (
+                  <div className="ticket-preview-grid">
+                    {attachments.map((file, index) => (
+                      <div className="ticket-preview-card" key={`${file.name}-${index}`}>
+                        <img src={URL.createObjectURL(file)} alt={file.name} className="ticket-preview-image" />
+                        <button
+                          type="button"
+                          className="ticket-preview-remove"
+                          onClick={() => removeAttachment(index)}
+                          title="Remove image"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="modal-actions">
