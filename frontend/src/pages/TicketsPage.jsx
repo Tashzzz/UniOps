@@ -12,6 +12,10 @@ const initialForm = {
   description: '',
   priority: '',
   category: '',
+  resourceLocation: '',
+  contactEmail: '',
+  contactPhone: '',
+  preferredContact: 'email',
 }
 
 export default function TicketsPage() {
@@ -55,6 +59,15 @@ export default function TicketsPage() {
       nextErrors.description = 'Description must be at least 10 characters'
     }
     if (!state.priority) nextErrors.priority = 'Priority is required'
+    if (!state.resourceLocation.trim()) nextErrors.resourceLocation = 'Resource/Location is required'
+    if (!state.contactEmail.trim()) nextErrors.contactEmail = 'Contact email is required'
+    if (state.contactEmail && !state.contactEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      nextErrors.contactEmail = 'Invalid email format'
+    }
+    if (!state.contactPhone.trim()) nextErrors.contactPhone = 'Contact phone is required'
+    if (state.contactPhone && !state.contactPhone.match(/^[0-9\s\-\+\(\)]+$/)) {
+      nextErrors.contactPhone = 'Invalid phone format'
+    }
     return nextErrors
   }
 
@@ -108,6 +121,10 @@ export default function TicketsPage() {
         description: form.description.trim(),
         priority: form.priority,
         category: form.category || null,
+        resourceLocation: form.resourceLocation.trim(),
+        contactEmail: form.contactEmail.trim(),
+        contactPhone: form.contactPhone.trim(),
+        preferredContact: form.preferredContact,
         status: 'OPEN',
       }
 
@@ -168,6 +185,10 @@ export default function TicketsPage() {
       description: ticket.description || '',
       priority: ticket.priority || '',
       category: ticket.category || '',
+      resourceLocation: ticket.resourceLocation || '',
+      contactEmail: ticket.contactEmail || '',
+      contactPhone: ticket.contactPhone || '',
+      preferredContact: ticket.preferredContact || 'email',
     })
     setErrors({})
     setAttachments([])
@@ -371,6 +392,45 @@ export default function TicketsPage() {
                 <div className="card" style={{ padding: 16, marginBottom: 16 }}>
                   <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Detailed Description</h3>
                   <p style={{ color: 'var(--text-2)', lineHeight: 1.6 }}>{viewingTicket.description}</p>
+                </div>
+
+                {/* Resource Location & Contact Details */}
+                <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Location & Contact Information</h3>
+                  <div style={{ display: 'grid', gap: 12 }}>
+                    {viewingTicket.resourceLocation && (
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>Resource/Location</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)' }}>{viewingTicket.resourceLocation}</div>
+                      </div>
+                    )}
+                    {viewingTicket.contactEmail && (
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>Contact Email</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)' }}>
+                          <a href={`mailto:${viewingTicket.contactEmail}`} style={{ color: 'var(--blue)', textDecoration: 'none' }}>
+                            {viewingTicket.contactEmail}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {viewingTicket.contactPhone && (
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>Contact Phone</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)' }}>
+                          <a href={`tel:${viewingTicket.contactPhone}`} style={{ color: 'var(--blue)', textDecoration: 'none' }}>
+                            {viewingTicket.contactPhone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {viewingTicket.preferredContact && (
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>Preferred Contact Method</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)', textTransform: 'capitalize' }}>{viewingTicket.preferredContact}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Attachments */}
@@ -615,6 +675,60 @@ export default function TicketsPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Resource/Location and Contact Details */}
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Resource/Location</label>
+                  <input
+                    className="form-control"
+                    value={form.resourceLocation}
+                    onChange={(e) => handleChange('resourceLocation', e.target.value)}
+                    placeholder="Enter resource or location details"
+                  />
+                  {errors.resourceLocation && <p className="field-error">{errors.resourceLocation}</p>}
+                </div>
+              </div>
+
+              {/* Contact Details */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div className="form-group">
+                  <label>Contact Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={form.contactEmail}
+                    onChange={(e) => handleChange('contactEmail', e.target.value)}
+                    placeholder="your@email.com"
+                  />
+                  {errors.contactEmail && <p className="field-error">{errors.contactEmail}</p>}
+                </div>
+                <div className="form-group">
+                  <label>Contact Phone</label>
+                  <input
+                    type="tel"
+                    className="form-control"
+                    value={form.contactPhone}
+                    onChange={(e) => handleChange('contactPhone', e.target.value)}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                  {errors.contactPhone && <p className="field-error">{errors.contactPhone}</p>}
+                </div>
+              </div>
+
+              {/* Preferred Contact */}
+              <div className="form-group">
+                <label>Preferred Contact Method</label>
+                <select
+                  className="form-control"
+                  value={form.preferredContact}
+                  onChange={(e) => handleChange('preferredContact', e.target.value)}
+                >
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
+                  <option value="both">Both Email & Phone</option>
+                </select>
               </div>
 
               {!editingTicket && (

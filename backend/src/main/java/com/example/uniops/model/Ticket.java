@@ -48,6 +48,18 @@ public class Ticket {
     @Column
     private String category;
 
+    @Column(name = "resource_location")
+    private String resourceLocation;
+
+    @Column(name = "contact_email")
+    private String contactEmail;
+
+    @Column(name = "contact_phone")
+    private String contactPhone;
+
+    @Column(name = "preferred_contact")
+    private String preferredContact;
+
     @Column(name = "attachment_url")
     private String attachmentUrl;
 
