@@ -31,6 +31,9 @@ export default function TicketsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [editingTicket, setEditingTicket] = useState(null)
   const [viewingTicket, setViewingTicket] = useState(null)
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false)
+  const [lightboxImages, setLightboxImages] = useState([])
+  const [lightboxCurrentIndex, setLightboxCurrentIndex] = useState(0)
 
   const loadTickets = () => {
     setLoading(true)
@@ -45,6 +48,21 @@ export default function TicketsPage() {
     const t = setTimeout(loadTickets, 250)
     return () => clearTimeout(t)
   }, [search, statusFilter])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!imageLightboxOpen) return
+      if (e.key === 'Escape') {
+        closeLightbox()
+      } else if (e.key === 'ArrowLeft') {
+        goToPrevImage()
+      } else if (e.key === 'ArrowRight') {
+        goToNextImage()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [imageLightboxOpen, lightboxCurrentIndex])
 
   const visibleTickets = useMemo(() => {
     if (!priorityFilter) return tickets
@@ -225,6 +243,25 @@ export default function TicketsPage() {
       .map((value) => value.trim())
       .filter(Boolean)
       .map((path) => (path.startsWith('/uploads') ? `http://localhost:8081${path}` : path))
+  }
+
+  const openImageLightbox = (images, startIndex = 0) => {
+    setLightboxImages(images)
+    setLightboxCurrentIndex(startIndex)
+    setImageLightboxOpen(true)
+  }
+
+  const closeLightbox = () => {
+    setImageLightboxOpen(false)
+    setLightboxCurrentIndex(0)
+  }
+
+  const goToPrevImage = () => {
+    setLightboxCurrentIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1))
+  }
+
+  const goToNextImage = () => {
+    setLightboxCurrentIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0))
   }
 
   return (
@@ -437,27 +474,65 @@ export default function TicketsPage() {
                 <div className="card" style={{ padding: 16, marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600 }}>Attachments ({getAttachmentUrls(viewingTicket).length})</h3>
+                    {getAttachmentUrls(viewingTicket).length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => openImageLightbox(getAttachmentUrls(viewingTicket))}
+                      >
+                        View All Images
+                      </button>
+                    )}
                   </div>
                   {getAttachmentUrls(viewingTicket).length === 0 ? (
                     <p style={{ color: 'var(--text-3)', fontSize: 13 }}>No images uploaded for this ticket.</p>
                   ) : (
                     <div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 12 }}>
-                        {getAttachmentUrls(viewingTicket).slice(0, 3).map((url, index) => (
-                          <a key={`${viewingTicket.id}-asset-${index}`} href={url} target="_blank" rel="noreferrer">
+                        {getAttachmentUrls(viewingTicket).map((url, index) => (
+                          <div
+                            key={`${viewingTicket.id}-asset-${index}`}
+                            onClick={() => openImageLightbox(getAttachmentUrls(viewingTicket), index)}
+                            style={{ cursor: 'pointer', position: 'relative' }}
+                          >
                             <img
                               src={url}
                               alt={`ticket-${viewingTicket.id}-asset-${index + 1}`}
-                              style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer' }}
+                              style={{
+                                width: '100%',
+                                height: 110,
+                                objectFit: 'cover',
+                                borderRadius: 8,
+                                border: '1px solid var(--border)',
+                                cursor: 'pointer',
+                                transition: 'opacity 0.2s',
+                                opacity: 0.9,
+                              }}
+                              onMouseEnter={(e) => (e.target.style.opacity = '1')}
+                              onMouseLeave={(e) => (e.target.style.opacity = '0.9')}
                             />
-                          </a>
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'rgba(0, 0, 0, 0)',
+                                borderRadius: 8,
+                                transition: 'background 0.2s',
+                              }}
+                              onMouseEnter={(e) => (e.parentElement.style.background = 'rgba(0, 0, 0, 0.3)')}
+                              onMouseLeave={(e) => (e.parentElement.style.background = 'rgba(0, 0, 0, 0)')}
+                            >
+                              <div style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>🔍</div>
+                            </div>
+                          </div>
                         ))}
                       </div>
-                      {getAttachmentUrls(viewingTicket).length > 3 && (
-                        <a href="#" onClick={(e) => { e.preventDefault() }} style={{ fontSize: 12, color: 'var(--blue)', fontWeight: 500 }}>
-                          VIEW ALL ASSETS
-                        </a>
-                      )}
                     </div>
                   )}
                 </div>
@@ -611,6 +686,191 @@ export default function TicketsPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox Modal */}
+      {imageLightboxOpen && lightboxImages.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.95)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          onClick={closeLightbox}
+        >
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={closeLightbox}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: 'white',
+              fontSize: 28,
+              cursor: 'pointer',
+              width: 40,
+              height: 40,
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+            }}
+          >
+            ✕
+          </button>
+
+          {/* Main image container */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Previous button */}
+            <button
+              type="button"
+              onClick={() => {
+                goToPrevImage()
+              }}
+              style={{
+                position: 'absolute',
+                left: -60,
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: 'white',
+                fontSize: 32,
+                cursor: 'pointer',
+                width: 50,
+                height: 50,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s',
+                zIndex: 10000,
+              }}
+              onMouseEnter={(e) => (e.target.style.background = 'rgba(255, 255, 255, 0.4)')}
+              onMouseLeave={(e) => (e.target.style.background = 'rgba(255, 255, 255, 0.2)')}
+            >
+              ◀
+            </button>
+
+            {/* Image */}
+            <img
+              src={lightboxImages[lightboxCurrentIndex]}
+              alt={`Image ${lightboxCurrentIndex + 1}`}
+              style={{
+                maxWidth: '80vw',
+                maxHeight: '80vh',
+                objectFit: 'contain',
+                borderRadius: 8,
+              }}
+            />
+
+            {/* Next button */}
+            <button
+              type="button"
+              onClick={() => {
+                goToNextImage()
+              }}
+              style={{
+                position: 'absolute',
+                right: -60,
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: 'white',
+                fontSize: 32,
+                cursor: 'pointer',
+                width: 50,
+                height: 50,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s',
+                zIndex: 10000,
+              }}
+              onMouseEnter={(e) => (e.target.style.background = 'rgba(255, 255, 255, 0.4)')}
+              onMouseLeave={(e) => (e.target.style.background = 'rgba(255, 255, 255, 0.2)')}
+            >
+              ▶
+            </button>
+          </div>
+
+          {/* Image counter and thumbnails */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              color: 'white',
+              textAlign: 'center',
+              zIndex: 10000,
+            }}
+          >
+            <div style={{ marginBottom: 12, fontSize: 14 }}>
+              {lightboxCurrentIndex + 1} / {lightboxImages.length}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {lightboxImages.map((img, index) => (
+                <img
+                  key={`thumb-${index}`}
+                  src={img}
+                  alt={`Thumbnail ${index + 1}`}
+                  onClick={() => setLightboxCurrentIndex(index)}
+                  style={{
+                    width: 60,
+                    height: 60,
+                    objectFit: 'cover',
+                    borderRadius: 4,
+                    border: lightboxCurrentIndex === index ? '2px solid white' : '2px solid rgba(255, 255, 255, 0.3)',
+                    cursor: 'pointer',
+                    opacity: lightboxCurrentIndex === index ? 1 : 0.6,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.opacity = '1'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.opacity = lightboxCurrentIndex === index ? '1' : '0.6'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Keyboard navigation hint */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 100,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              color: 'rgba(255, 255, 255, 0.6)',
+              fontSize: 12,
+              zIndex: 10000,
+            }}
+          >
+            Use arrow keys or click to navigate
           </div>
         </div>
       )}
