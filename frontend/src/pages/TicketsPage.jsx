@@ -343,48 +343,213 @@ export default function TicketsPage() {
 
       {viewingTicket && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setViewingTicket(null)}>
-          <div className="modal" style={{ maxWidth: 840 }}>
-            <h2>{viewingTicket.title}</h2>
-            <div className="card" style={{ marginBottom: 14, padding: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 6 }}>Detailed Description</div>
-                  <p style={{ color: 'var(--text-2)' }}>{viewingTicket.description}</p>
+          <div className="modal" style={{ maxWidth: 1200, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 8 }}>
+                  {viewingTicket.category?.toUpperCase() || 'TICKET'} • #{viewingTicket.id}
                 </div>
-                <div>
-                  <div style={{ display: 'grid', gap: 8 }}>
-                    <div><strong>Status:</strong> {getStatusBadge(viewingTicket.status).label}</div>
-                    <div><strong>Priority:</strong> {getPriorityBadge(viewingTicket.priority).label}</div>
-                    <div><strong>Category:</strong> {viewingTicket.category || '-'}</div>
-                    <div><strong>Created:</strong> {new Date(viewingTicket.createdAt).toLocaleString()}</div>
+                <h1 style={{ margin: '0 0 12px 0', fontSize: 24 }}>{viewingTicket.title}</h1>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <span className={`badge ${getStatusBadge(viewingTicket.status).cls}`}>
+                    {getStatusBadge(viewingTicket.status).label}
+                  </span>
+                  <span className={`badge ${getPriorityBadge(viewingTicket.priority).cls}`}>
+                    {getPriorityBadge(viewingTicket.priority).icon} {getPriorityBadge(viewingTicket.priority).label}
+                  </span>
+                </div>
+              </div>
+              <button type="button" className="btn btn-secondary" onClick={() => setViewingTicket(null)} style={{ minWidth: 60 }}>
+                Close
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 20 }}>
+              {/* Left Column */}
+              <div>
+                {/* Detailed Description */}
+                <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Detailed Description</h3>
+                  <p style={{ color: 'var(--text-2)', lineHeight: 1.6 }}>{viewingTicket.description}</p>
+                </div>
+
+                {/* Attachments */}
+                <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600 }}>Attachments ({getAttachmentUrls(viewingTicket).length})</h3>
+                  </div>
+                  {getAttachmentUrls(viewingTicket).length === 0 ? (
+                    <p style={{ color: 'var(--text-3)', fontSize: 13 }}>No images uploaded for this ticket.</p>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 12 }}>
+                        {getAttachmentUrls(viewingTicket).slice(0, 3).map((url, index) => (
+                          <a key={`${viewingTicket.id}-asset-${index}`} href={url} target="_blank" rel="noreferrer">
+                            <img
+                              src={url}
+                              alt={`ticket-${viewingTicket.id}-asset-${index + 1}`}
+                              style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer' }}
+                            />
+                          </a>
+                        ))}
+                      </div>
+                      {getAttachmentUrls(viewingTicket).length > 3 && (
+                        <a href="#" onClick={(e) => { e.preventDefault() }} style={{ fontSize: 12, color: 'var(--blue)', fontWeight: 500 }}>
+                          VIEW ALL ASSETS
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Activity Log */}
+                <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Activity Log</h3>
+                  <div style={{ display: 'grid', gap: 12 }}>
+                    <div style={{ display: 'flex', gap: 10, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>
+                        S
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500 }}>Status updated to {getStatusBadge(viewingTicket.status).label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Today, {new Date(viewingTicket.createdAt).toLocaleTimeString()}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--green)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>
+                        T
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500 }}>Ticket Created</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{new Date(viewingTicket.createdAt).toLocaleString()}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Internal Communication */}
+                <div className="card" style={{ padding: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Internal Communication</h3>
+                  <div style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+                    <div style={{ padding: 12, background: 'var(--bg-2)', borderRadius: 8 }}>
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--blue)', flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>System</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Now</div>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 13, color: 'var(--text-2)', margin: 0 }}>Ticket has been created and assigned.</p>
+                    </div>
+                  </div>
+                  <textarea
+                    placeholder="Add a resolution note or comment..."
+                    style={{
+                      width: '100%',
+                      padding: 10,
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg-1)',
+                      color: 'var(--text-2)',
+                      fontSize: 13,
+                      fontFamily: 'inherit',
+                      marginBottom: 8,
+                      resize: 'vertical',
+                      minHeight: 60
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setViewingTicket(null)}>
+                      Discard
+                    </button>
+                    <button type="button" className="btn btn-primary btn-sm">
+                      Post Comment
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="card" style={{ padding: 14 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 8 }}>Attachments</div>
-              {getAttachmentUrls(viewingTicket).length === 0 ? (
-                <p style={{ color: 'var(--text-3)' }}>No images uploaded for this ticket.</p>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-                  {getAttachmentUrls(viewingTicket).map((url, index) => (
-                    <a key={`${viewingTicket.id}-full-asset-${index}`} href={url} target="_blank" rel="noreferrer">
-                      <img
-                        src={url}
-                        alt={`ticket-${viewingTicket.id}-asset-${index + 1}`}
-                        style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }}
-                      />
-                    </a>
-                  ))}
+              {/* Right Column */}
+              <div>
+                {/* Management Control */}
+                <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Management Control</h3>
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 6 }}>ASSIGNED TECHNICIAN</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, background: 'var(--bg-2)', borderRadius: 6 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                        A
+                      </div>
+                      <select style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-2)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+                        <option>Admin User</option>
+                        <option>User 1</option>
+                        <option>User 2</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 6 }}>CHANGE STATUS</div>
+                    <button type="button" className="btn btn-secondary btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
+                      Mark as {viewingTicket.status === 'OPEN' ? 'In Progress' : 'In Progress'}
+                    </button>
+                  </div>
+                  <button type="button" className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center', marginBottom: 8 }}>
+                    ✓ Resolve Ticket
+                  </button>
+                  <button type="button" className="btn btn-danger btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
+                    ✕ Reject Ticket
+                  </button>
                 </div>
-              )}
-            </div>
 
-            <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setViewingTicket(null)}>
-                Close
-              </button>
+                {/* SLA Status */}
+                <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>SLA Status</h3>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>Response Deadline</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: viewingTicket.priority === 'HIGH' ? 'var(--red)' : 'var(--text-2)' }}>
+                        {viewingTicket.priority === 'HIGH' ? 'Met (0.5h)' : 'Met (2h)'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>Resolution Target</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: viewingTicket.priority === 'HIGH' ? 'var(--red)' : 'var(--text-2)' }}>
+                        {viewingTicket.priority === 'HIGH' ? '2h 45m left' : '8h 30m left'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ width: '100%', height: 6, borderRadius: 999, background: 'var(--bg-2)', overflow: 'hidden', marginTop: 8 }}>
+                        <div
+                          style={{
+                            width: viewingTicket.priority === 'HIGH' ? '65%' : '40%',
+                            height: '100%',
+                            background: viewingTicket.priority === 'HIGH' ? 'var(--red)' : 'var(--blue)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="card" style={{ padding: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Details</h3>
+                  <div style={{ display: 'grid', gap: 10, fontSize: 13 }}>
+                    <div>
+                      <div style={{ color: 'var(--text-3)', marginBottom: 3 }}>Category</div>
+                      <div style={{ fontWeight: 500 }}>{viewingTicket.category || 'Not specified'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-3)', marginBottom: 3 }}>Created</div>
+                      <div style={{ fontWeight: 500 }}>{new Date(viewingTicket.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-3)', marginBottom: 3 }}>Ticket ID</div>
+                      <div style={{ fontWeight: 500 }}>#{viewingTicket.id}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
