@@ -52,7 +52,24 @@ public class TicketService {
     public Ticket uploadAttachment(Long id, MultipartFile file) throws java.io.IOException {
         Ticket ticket = getTicketById(id);
         String fileName = fileUploadUtil.saveFile("tickets", file);
-        ticket.setAttachmentUrl("/uploads/tickets/" + fileName);
+        String newPath = "/uploads/tickets/" + fileName;
+        String current = ticket.getAttachmentUrl();
+        if (current == null || current.isBlank()) {
+            ticket.setAttachmentUrl(newPath);
+        } else {
+            List<String> existing = new ArrayList<>();
+            for (String path : current.split(",")) {
+                String trimmed = path.trim();
+                if (!trimmed.isEmpty()) {
+                    existing.add(trimmed);
+                }
+            }
+            if (existing.size() >= 3) {
+                throw new IllegalArgumentException("You can upload up to 3 images only");
+            }
+            existing.add(newPath);
+            ticket.setAttachmentUrl(String.join(",", existing));
+        }
         return ticketRepository.save(ticket);
     }
 
@@ -65,5 +82,22 @@ public class TicketService {
         }
         ticket.setAttachmentUrl(String.join(",", paths));
         return ticketRepository.save(ticket);
+    }
+
+    public Ticket updateTicket(Long id, Ticket updatedTicket) {
+        Ticket existing = getTicketById(id);
+        existing.setTitle(updatedTicket.getTitle());
+        existing.setDescription(updatedTicket.getDescription());
+        existing.setPriority(updatedTicket.getPriority());
+        existing.setCategory(updatedTicket.getCategory());
+        if (updatedTicket.getStatus() != null) {
+            existing.setStatus(updatedTicket.getStatus());
+        }
+        return ticketRepository.save(existing);
+    }
+
+    public void deleteTicket(Long id) {
+        Ticket existing = getTicketById(id);
+        ticketRepository.delete(existing);
     }
 }

@@ -20,10 +20,13 @@ export default function TicketsPage() {
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [attachments, setAttachments] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [editingTicket, setEditingTicket] = useState(null)
+  const [viewingTicket, setViewingTicket] = useState(null)
 
   const loadTickets = () => {
     setLoading(true)
@@ -38,6 +41,11 @@ export default function TicketsPage() {
     const t = setTimeout(loadTickets, 250)
     return () => clearTimeout(t)
   }, [search, statusFilter])
+
+  const visibleTickets = useMemo(() => {
+    if (!priorityFilter) return tickets
+    return tickets.filter((ticket) => ticket.priority === priorityFilter)
+  }, [tickets, priorityFilter])
 
   const validate = (state) => {
     const nextErrors = {}
@@ -56,6 +64,7 @@ export default function TicketsPage() {
     setForm(initialForm)
     setErrors({})
     setAttachments([])
+    setEditingTicket(null)
   }
 
   const handleChange = (key, value) => {
@@ -94,33 +103,85 @@ export default function TicketsPage() {
 
     setSubmitting(true)
     try {
-      const created = await ticketService.create({
+      const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
         priority: form.priority,
         category: form.category || null,
         status: 'OPEN',
-      })
+      }
 
-      if (attachments.length > 0 && created?.data?.id) {
-        try {
-          await ticketService.uploadAttachments(created.data.id, attachments)
-        } catch {
-          toast.error('Ticket created, but image upload failed')
+      if (editingTicket?.id) {
+        const updated = await ticketService.update(editingTicket.id, {
+          ...payload,
+          status: editingTicket.status || 'OPEN',
+        })
+        if (updated?.data) {
+          setTickets((prev) => prev.map((ticket) => (ticket.id === updated.data.id ? updated.data : ticket)))
         }
-      }
+        toast.success('Ticket updated')
+        setShowModal(false)
+        resetForm()
+      } else {
+        const created = await ticketService.create(payload)
+        let createdTicket = created?.data
 
-      if (created?.data) {
-        setTickets((prev) => [created.data, ...prev])
+        if (attachments.length > 0 && created?.data?.id) {
+          try {
+            const uploaded = await ticketService.uploadAttachments(created.data.id, attachments)
+            if (uploaded?.data) {
+              createdTicket = uploaded.data
+            }
+          } catch {
+            // Fallback to single-upload endpoint for compatibility.
+            try {
+              for (const file of attachments) {
+                const uploaded = await ticketService.uploadAttachment(created.data.id, file)
+                if (uploaded?.data) {
+                  createdTicket = uploaded.data
+                }
+              }
+            } catch {
+              toast.error('Ticket created, but image upload failed')
+            }
+          }
+        }
+
+        if (createdTicket) {
+          setTickets((prev) => [createdTicket, ...prev])
+        }
+        toast.success('Ticket created')
+        setShowModal(false)
+        resetForm()
       }
-      toast.success('Ticket created')
-      setShowModal(false)
-      resetForm()
-      loadTickets()
     } catch (err) {
-      toast.error(err.message || 'Failed to create ticket')
+      toast.error(err.message || 'Failed to save ticket')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const startEdit = (ticket) => {
+    setEditingTicket(ticket)
+    setForm({
+      title: ticket.title || '',
+      description: ticket.description || '',
+      priority: ticket.priority || '',
+      category: ticket.category || '',
+    })
+    setErrors({})
+    setAttachments([])
+    setShowModal(true)
+  }
+
+  const handleDelete = async (ticket) => {
+    if (!window.confirm(`Delete ticket #${ticket.id}?`)) return
+    try {
+      await ticketService.delete(ticket.id)
+      setTickets((prev) => prev.filter((item) => item.id !== ticket.id))
+      toast.success('Ticket deleted')
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete ticket')
     }
   }
 
@@ -134,6 +195,15 @@ export default function TicketsPage() {
     if (status === 'IN_PROGRESS') return { cls: 'badge-blue', label: 'In Progress', progress: 60 }
     if (status === 'CLOSED') return { cls: 'badge-green', label: 'Closed', progress: 100 }
     return { cls: 'badge-purple', label: 'Open', progress: 20 }
+  }
+
+  const getAttachmentUrls = (ticket) => {
+    const raw = ticket?.attachmentUrl || ''
+    return raw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((path) => (path.startsWith('/uploads') ? `http://localhost:8081${path}` : path))
   }
 
   return (
@@ -176,6 +246,18 @@ export default function TicketsPage() {
               </option>
             ))}
           </select>
+          <select
+            className="filter-select"
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+          >
+            <option value="">All Priorities</option>
+            {PRIORITIES.map((priority) => (
+              <option value={priority} key={priority}>
+                {priority}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -183,7 +265,7 @@ export default function TicketsPage() {
         <div className="loading-container">
           <div className="spinner" />
         </div>
-      ) : tickets.length === 0 ? (
+      ) : visibleTickets.length === 0 ? (
         <div className="card empty-state">
           <Ticket size={42} />
           <h3>No tickets available</h3>
@@ -199,10 +281,11 @@ export default function TicketsPage() {
                 <th>Status</th>
                 <th>Priority</th>
                 <th>Created Date</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {tickets.map((ticket) => {
+              {visibleTickets.map((ticket) => {
                 const priority = getPriorityBadge(ticket.priority)
                 const status = getStatusBadge(ticket.status)
                 return (
@@ -237,6 +320,19 @@ export default function TicketsPage() {
                       </span>
                     </td>
                     <td>{new Date(ticket.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEdit(ticket)}>
+                          Edit
+                        </button>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => setViewingTicket(ticket)}>
+                          View
+                        </button>
+                        <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(ticket)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
@@ -245,10 +341,59 @@ export default function TicketsPage() {
         </div>
       )}
 
+      {viewingTicket && (
+        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setViewingTicket(null)}>
+          <div className="modal" style={{ maxWidth: 840 }}>
+            <h2>{viewingTicket.title}</h2>
+            <div className="card" style={{ marginBottom: 14, padding: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 6 }}>Detailed Description</div>
+                  <p style={{ color: 'var(--text-2)' }}>{viewingTicket.description}</p>
+                </div>
+                <div>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    <div><strong>Status:</strong> {getStatusBadge(viewingTicket.status).label}</div>
+                    <div><strong>Priority:</strong> {getPriorityBadge(viewingTicket.priority).label}</div>
+                    <div><strong>Category:</strong> {viewingTicket.category || '-'}</div>
+                    <div><strong>Created:</strong> {new Date(viewingTicket.createdAt).toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: 14 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 8 }}>Attachments</div>
+              {getAttachmentUrls(viewingTicket).length === 0 ? (
+                <p style={{ color: 'var(--text-3)' }}>No images uploaded for this ticket.</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+                  {getAttachmentUrls(viewingTicket).map((url, index) => (
+                    <a key={`${viewingTicket.id}-full-asset-${index}`} href={url} target="_blank" rel="noreferrer">
+                      <img
+                        src={url}
+                        alt={`ticket-${viewingTicket.id}-asset-${index + 1}`}
+                        style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }}
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => setViewingTicket(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal">
-            <h2>Create Ticket</h2>
+            <h2>{editingTicket ? 'Edit Ticket' : 'Create Ticket'}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Title</label>
@@ -307,49 +452,51 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Attachment (optional)</label>
-                <div className="file-upload-area ticket-upload-area">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => {
-                      handleFiles(e.target.files)
-                      e.target.value = ''
-                    }}
-                    id="ticketAttachmentInput"
-                  />
-                  <label htmlFor="ticketAttachmentInput">
-                    <span className="ticket-upload-icon">
-                      <ImageUp size={16} />
-                    </span>
-                    <span style={{ display: 'block', fontWeight: 700, color: 'var(--text-2)' }}>
-                      Drag and drop images here
-                    </span>
-                    <span style={{ fontSize: 12 }}>
-                      Or click to browse from your device (Max 3 files, PNG/JPG)
-                    </span>
-                  </label>
-                </div>
-                {attachments.length > 0 && (
-                  <div className="ticket-preview-grid">
-                    {attachments.map((file, index) => (
-                      <div className="ticket-preview-card" key={`${file.name}-${index}`}>
-                        <img src={URL.createObjectURL(file)} alt={file.name} className="ticket-preview-image" />
-                        <button
-                          type="button"
-                          className="ticket-preview-remove"
-                          onClick={() => removeAttachment(index)}
-                          title="Remove image"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
+              {!editingTicket && (
+                <div className="form-group">
+                  <label>Attachment (optional)</label>
+                  <div className="file-upload-area ticket-upload-area">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFiles(e.target.files)
+                        e.target.value = ''
+                      }}
+                      id="ticketAttachmentInput"
+                    />
+                    <label htmlFor="ticketAttachmentInput">
+                      <span className="ticket-upload-icon">
+                        <ImageUp size={16} />
+                      </span>
+                      <span style={{ display: 'block', fontWeight: 700, color: 'var(--text-2)' }}>
+                        Drag and drop images here
+                      </span>
+                      <span style={{ fontSize: 12 }}>
+                        Or click to browse from your device (Max 3 files, PNG/JPG)
+                      </span>
+                    </label>
                   </div>
-                )}
-              </div>
+                  {attachments.length > 0 && (
+                    <div className="ticket-preview-grid">
+                      {attachments.map((file, index) => (
+                        <div className="ticket-preview-card" key={`${file.name}-${index}`}>
+                          <img src={URL.createObjectURL(file)} alt={file.name} className="ticket-preview-image" />
+                          <button
+                            type="button"
+                            className="ticket-preview-remove"
+                            onClick={() => removeAttachment(index)}
+                            title="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="modal-actions">
                 <button
@@ -363,7 +510,7 @@ export default function TicketsPage() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={!isValid || submitting}>
-                  {submitting ? 'Submitting...' : 'Submit'}
+                  {submitting ? 'Saving...' : editingTicket ? 'Update' : 'Submit'}
                 </button>
               </div>
             </form>

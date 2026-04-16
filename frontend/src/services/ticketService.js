@@ -3,6 +3,8 @@ import api from './api'
 const ticketService = {
   getAll: (params) => api.get('/tickets', { params }),
   create: (data) => api.post('/tickets', data),
+  update: (id, data) => api.put(`/tickets/${id}`, data),
+  delete: (id) => api.delete(`/tickets/${id}`),
   uploadAttachment: (id, file) => {
     const formData = new FormData()
     formData.append('file', file)

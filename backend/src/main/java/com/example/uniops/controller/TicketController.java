@@ -5,9 +5,11 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +44,17 @@ public class TicketController {
             ticket.setStatus(TicketStatus.OPEN);
         }
         return ResponseEntity.status(201).body(ticketService.createTicket(ticket));
+    }
+
+    @PutMapping({"/{id}", "/{id}/"})
+    public ResponseEntity<Ticket> updateTicket(@PathVariable Long id, @Valid @RequestBody Ticket ticket) {
+        return ResponseEntity.ok(ticketService.updateTicket(id, ticket));
+    }
+
+    @DeleteMapping({"/{id}", "/{id}/"})
+    public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+        ticketService.deleteTicket(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/attachment")
