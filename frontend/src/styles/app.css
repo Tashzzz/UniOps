@@ -313,6 +313,11 @@ tbody tr:hover td { background: #fafbff; }
 }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--red);
+}
 
 /* ── Modal ───────────────────────────────────────────── */
 .modal-backdrop {
@@ -469,6 +474,107 @@ tbody tr:hover td { background: #fafbff; }
   border-color: var(--blue); background: #eef1fe; color: var(--blue);
 }
 .file-upload-area input { display: none; }
+.file-upload-area label { cursor: pointer; font-weight: 600; }
+
+.ticket-upload-area {
+  background: #f8fafc;
+  border-color: #dbe3ef;
+}
+.ticket-upload-area label {
+  display: block;
+  text-align: center;
+  line-height: 1.6;
+}
+.ticket-upload-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.ticket-preview-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.ticket-preview-card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+  min-height: 82px;
+}
+.ticket-preview-image {
+  width: 100%;
+  height: 100%;
+  min-height: 82px;
+  object-fit: cover;
+  display: block;
+}
+.ticket-preview-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.75);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ticket-preview-remove:hover {
+  background: rgba(17, 24, 39, 0.9);
+}
+
+.ticket-detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+
+.workflow-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.comment-bubble {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.comment-bubble.own {
+  background: #eef1fe;
+  border-color: #c7d2fe;
+}
+
+.comment-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-3);
+  font-size: 11px;
+}
 
 /* ── Type chip ───────────────────────────────────────── */
 .type-chip {
