@@ -77,8 +77,10 @@ export default function TicketsPage() {
   const [errors, setErrors] = useState({})
   const [attachments, setAttachments] = useState([])
   const [showCreate, setShowCreate] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [viewingTicketId, setViewingTicketId] = useState(null)
+  const [editingTicketId, setEditingTicketId] = useState(null)
   const [ticketMeta, setTicketMeta] = useState({})
   const [statusDraft, setStatusDraft] = useState('OPEN')
   const [assignDraft, setAssignDraft] = useState('')
@@ -247,6 +249,68 @@ export default function TicketsPage() {
       toast.error(err.message || 'Failed to create ticket')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const openEditModal = (ticket) => {
+    setEditingTicketId(ticket.id)
+    setForm({
+      category: ticket.category || '',
+      description: ticket.description || '',
+      priority: ticket.priority || '',
+      contactPhone: ticket.contactPhone || '',
+    })
+    setErrors({})
+    setAttachments([])
+    setShowEdit(true)
+  }
+
+  const handleUpdateTicket = async (e) => {
+    e.preventDefault()
+    if (!editingTicketId) return
+    const formErrors = validate(form)
+    setErrors(formErrors)
+    if (Object.keys(formErrors).length > 0) return
+    setSubmitting(true)
+    try {
+      const ticketToUpdate = tickets.find((ticket) => ticket.id === editingTicketId)
+      if (!ticketToUpdate) {
+        toast.error('Ticket not found')
+        return
+      }
+      const payload = {
+        ...ticketToUpdate,
+        title: `${form.category} request`,
+        description: form.description.trim(),
+        priority: form.priority,
+        category: form.category,
+        contactPhone: form.contactPhone.trim(),
+      }
+      const updated = await ticketService.update(editingTicketId, payload)
+      if (updated?.data) {
+        setTickets((prev) => prev.map((ticket) => (ticket.id === updated.data.id ? updated.data : ticket)))
+      }
+      toast.success('Ticket updated successfully')
+      setShowEdit(false)
+      setEditingTicketId(null)
+      resetForm()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update ticket')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteTicket = async (ticketId) => {
+    const confirmed = window.confirm(`Delete ticket #${ticketId}?`)
+    if (!confirmed) return
+    try {
+      await ticketService.delete(ticketId)
+      setTickets((prev) => prev.filter((ticket) => ticket.id !== ticketId))
+      if (viewingTicketId === ticketId) setViewingTicketId(null)
+      toast.success('Ticket deleted')
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete ticket')
     }
   }
 
@@ -428,9 +492,21 @@ export default function TicketsPage() {
                     {!isUser && <td>{meta.assignedStaff || 'Unassigned'}</td>}
                     {isUser && <td>{new Date(ticket.createdAt).toLocaleString()}</td>}
                     <td>
-                      <button className="btn btn-primary btn-sm" onClick={() => setViewingTicketId(ticket.id)}>
-                        {isUser ? 'View' : 'View / Update'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => setViewingTicketId(ticket.id)}>
+                          {isUser ? 'View' : 'View / Update'}
+                        </button>
+                        {isUser && (
+                          <>
+                            <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(ticket)}>
+                              Edit
+                            </button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTicket(ticket.id)}>
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
@@ -455,6 +531,27 @@ export default function TicketsPage() {
                     <span className={`badge ${getStatusBadge(viewingTicket.status).cls}`}>{getStatusBadge(viewingTicket.status).label}</span>
                   </div>
                   <p style={{ color: 'var(--text-2)' }}>{viewingTicket.description}</p>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      paddingTop: 12,
+                      borderTop: '1px solid var(--border)',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: 'var(--text-3)', fontSize: 11, marginBottom: 3 }}>Created</div>
+                      <div style={{ color: 'var(--text-2)', fontSize: 13 }}>
+                        {new Date(viewingTicket.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-3)', fontSize: 11, marginBottom: 3 }}>Contact Number</div>
+                      <div style={{ color: 'var(--text-2)', fontSize: 13 }}>{viewingTicket.contactPhone || 'N/A'}</div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="card" style={{ marginBottom: 12 }}>
@@ -628,6 +725,12 @@ export default function TicketsPage() {
               </div>
             </div>
             <div className="modal-actions">
+              {isUser && (
+                <>
+                  <button className="btn btn-secondary" onClick={() => openEditModal(viewingTicket)}>Edit Ticket</button>
+                  <button className="btn btn-danger" onClick={() => handleDeleteTicket(viewingTicket.id)}>Delete Ticket</button>
+                </>
+              )}
               <button className="btn btn-secondary" onClick={() => setViewingTicketId(null)}>Close</button>
             </div>
           </div>
@@ -718,6 +821,67 @@ export default function TicketsPage() {
               <CircleAlert size={14} />
               Required fields: category, description, priority, contact number.
             </div>
+          </div>
+        </div>
+      )}
+
+      {showEdit && (
+        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowEdit(false)}>
+          <div className="modal">
+            <h2>Edit Ticket</h2>
+            <form onSubmit={handleUpdateTicket}>
+              <div className="form-group">
+                <label>Category</label>
+                <select className="form-control" value={form.category} onChange={(e) => handleChange('category', e.target.value)}>
+                  <option value="">Select category</option>
+                  {CATEGORIES.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+                {errors.category && <p className="field-error">{errors.category}</p>}
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea className="form-control" rows={4} value={form.description} onChange={(e) => handleChange('description', e.target.value)} />
+                {errors.description && <p className="field-error">{errors.description}</p>}
+              </div>
+
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Priority</label>
+                  <select className="form-control" value={form.priority} onChange={(e) => handleChange('priority', e.target.value)}>
+                    <option value="">Select priority</option>
+                    {PRIORITIES.map((priority) => (
+                      <option key={priority} value={priority}>{priority}</option>
+                    ))}
+                  </select>
+                  {errors.priority && <p className="field-error">{errors.priority}</p>}
+                </div>
+                <div className="form-group">
+                  <label>Contact Number</label>
+                  <input className="form-control" value={form.contactPhone} onChange={(e) => handleChange('contactPhone', e.target.value)} />
+                  {errors.contactPhone && <p className="field-error">{errors.contactPhone}</p>}
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowEdit(false)
+                    setEditingTicketId(null)
+                    resetForm()
+                  }}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={!isValid || submitting}>
+                  {submitting ? 'Updating...' : 'Update Ticket'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
