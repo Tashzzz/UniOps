@@ -1,5 +1,6 @@
 package com.example.uniops.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +41,9 @@ public class TicketService {
     public Ticket createTicket(Ticket ticket) {
         if (ticket.getStatus() == null) {
             ticket.setStatus(TicketStatus.OPEN);
+        }
+        if (ticket.getCreatedAt() == null) {
+            ticket.setCreatedAt(LocalDateTime.now());
         }
         return ticketRepository.save(ticket);
     }
@@ -86,12 +90,21 @@ public class TicketService {
 
     public Ticket updateTicket(Long id, Ticket updatedTicket) {
         Ticket existing = getTicketById(id);
+        TicketStatus previousStatus = existing.getStatus();
         existing.setTitle(updatedTicket.getTitle());
         existing.setDescription(updatedTicket.getDescription());
         existing.setPriority(updatedTicket.getPriority());
         existing.setCategory(updatedTicket.getCategory());
         if (updatedTicket.getStatus() != null) {
             existing.setStatus(updatedTicket.getStatus());
+            if (previousStatus == TicketStatus.OPEN
+                    && updatedTicket.getStatus() == TicketStatus.IN_PROGRESS
+                    && existing.getFirstResponseAt() == null) {
+                existing.setFirstResponseAt(LocalDateTime.now());
+            }
+            if (previousStatus != TicketStatus.RESOLVED && updatedTicket.getStatus() == TicketStatus.RESOLVED) {
+                existing.setResolvedAt(LocalDateTime.now());
+            }
         }
         return ticketRepository.save(existing);
     }

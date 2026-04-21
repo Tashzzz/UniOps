@@ -1,6 +1,7 @@
 package com.example.uniops.model;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -71,12 +73,36 @@ public class Ticket {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "first_response_at")
+    private LocalDateTime firstResponseAt;
+
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+
     @PrePersist
     protected void onCreate() {
         if (status == null) {
             status = TicketStatus.OPEN;
         }
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
+
+    @Transient
+    public Long getTimeToFirstResponseMillis() {
+        if (createdAt == null || firstResponseAt == null) {
+            return null;
+        }
+        return ChronoUnit.MILLIS.between(createdAt, firstResponseAt);
+    }
+
+    @Transient
+    public Long getTimeToResolutionMillis() {
+        if (createdAt == null || resolvedAt == null) {
+            return null;
+        }
+        return ChronoUnit.MILLIS.between(createdAt, resolvedAt);
     }
 
     public enum TicketPriority {

@@ -46,6 +46,22 @@ const getAttachmentUrls = (ticket) => {
     .map((path) => (path.startsWith('/uploads') ? `http://localhost:8081${path}` : path))
 }
 
+const formatDuration = (ms) => {
+  if (ms == null || Number.isNaN(ms) || ms < 0) return 'N/A'
+  const totalMinutes = Math.floor(ms / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours <= 0) return `${minutes} min`
+  return `${hours}h ${minutes}m`
+}
+
+const getTimerBadge = (ms, fastLimitMs, moderateLimitMs) => {
+  if (ms == null) return 'badge-gray'
+  if (ms <= fastLimitMs) return 'badge-green'
+  if (ms <= moderateLimitMs) return 'badge-yellow'
+  return 'badge-red'
+}
+
 export default function TicketsPage() {
   const { user } = useAuth()
   const role = user?.role || 'STUDENT'
@@ -70,6 +86,7 @@ export default function TicketsPage() {
   const [commentDraft, setCommentDraft] = useState('')
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editingCommentText, setEditingCommentText] = useState('')
+  const [nowMs, setNowMs] = useState(Date.now())
 
   useEffect(() => {
     try {
@@ -134,6 +151,12 @@ export default function TicketsPage() {
     setResolutionDraft(viewingMeta.resolutionNotes || '')
   }, [viewingTicketId, viewingTicket, viewingMeta.assignedStaff, viewingMeta.resolutionNotes])
 
+  useEffect(() => {
+    if (!viewingTicket) return undefined
+    const interval = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [viewingTicket])
+
   const dashboardStats = useMemo(() => {
     const total = allVisibleTickets.length
     const open = allVisibleTickets.filter((ticket) => ticket.status === 'OPEN').length
@@ -146,6 +169,9 @@ export default function TicketsPage() {
     const nextErrors = {}
     if (!state.category) nextErrors.category = 'Category is required'
     if (!state.description.trim()) nextErrors.description = 'Description is required'
+    if (state.description.trim() && state.description.trim().length < 10) {
+      nextErrors.description = 'Description must be at least 10 characters'
+    }
     if (!state.priority) nextErrors.priority = 'Priority is required'
     if (!state.contactPhone.trim()) nextErrors.contactPhone = 'Contact number is required'
     if (state.contactPhone && !state.contactPhone.match(/^[0-9\s\-+()]+$/)) {
@@ -559,9 +585,45 @@ export default function TicketsPage() {
 
                 <div className="card">
                   <h3 className="card-heading"><Clock3 size={14} /> Response Timer</h3>
-                  <p style={{ color: 'var(--text-2)', fontSize: 13 }}>
-                    Age: {Math.max(0, Math.floor((Date.now() - new Date(viewingTicket.createdAt).getTime()) / 3600000))}h
-                  </p>
+                  {(() => {
+                    const createdMs = new Date(viewingTicket.createdAt).getTime()
+                    const firstResponseMs =
+                      viewingTicket.timeToFirstResponseMillis ??
+                      (viewingTicket.firstResponseAt
+                        ? new Date(viewingTicket.firstResponseAt).getTime() - createdMs
+                        : null)
+                    const resolutionMs =
+                      viewingTicket.timeToResolutionMillis ??
+                      (viewingTicket.resolvedAt
+                        ? new Date(viewingTicket.resolvedAt).getTime() - createdMs
+                        : null)
+                    const liveFirstResponseMs = firstResponseMs ?? Math.max(0, nowMs - createdMs)
+                    const liveResolutionMs = resolutionMs ?? Math.max(0, nowMs - createdMs)
+                    const firstResponseBadge = getTimerBadge(liveFirstResponseMs, 30 * 60 * 1000, 60 * 60 * 1000)
+                    const resolutionBadge = getTimerBadge(liveResolutionMs, 4 * 60 * 60 * 1000, 8 * 60 * 60 * 1000)
+                    const showSlaWarning = firstResponseMs == null && liveFirstResponseMs > 60 * 60 * 1000
+                    return (
+                      <div style={{ display: 'grid', gap: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-2)', fontSize: 13 }}>Time to First Response</span>
+                          <span className={`badge ${firstResponseBadge}`}>
+                            {firstResponseMs == null ? `Live: ${formatDuration(liveFirstResponseMs)}` : formatDuration(firstResponseMs)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-2)', fontSize: 13 }}>Time to Resolution</span>
+                          <span className={`badge ${resolutionBadge}`}>
+                            {resolutionMs == null ? `Live: ${formatDuration(liveResolutionMs)}` : formatDuration(resolutionMs)}
+                          </span>
+                        </div>
+                        {showSlaWarning && (
+                          <div className="badge badge-red" style={{ width: 'fit-content' }}>
+                            SLA warning: first response exceeded 1 hour
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             </div>
