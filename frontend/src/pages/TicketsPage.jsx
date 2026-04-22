@@ -494,8 +494,13 @@ export default function TicketsPage() {
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button className="btn btn-primary btn-sm" onClick={() => setViewingTicketId(ticket.id)}>
-                          {isUser ? 'View' : 'View / Update'}
+                          View
                         </button>
+                        {!isUser && (
+                          <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(ticket)}>
+                            Update
+                          </button>
+                        )}
                         {isUser && (
                           <>
                             <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(ticket)}>
