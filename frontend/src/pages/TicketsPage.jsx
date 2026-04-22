@@ -643,45 +643,59 @@ export default function TicketsPage() {
                 {(canManage || canTechnician) && (
                   <div className="card" style={{ marginBottom: 12 }}>
                     <h3 className="card-heading">Ticket Details Actions</h3>
+                    
                     <div className="form-group">
-                      <label>Status</label>
+                      <label style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-3)', letterSpacing: '0.5px' }}>STATUS</label>
                       <select className="form-control" value={statusDraft} onChange={(e) => setStatusDraft(e.target.value)}>
                         {STATUSES.map((status) => (
                           <option key={status} value={status}>{labelize(status)}</option>
                         ))}
                       </select>
                     </div>
+
                     {canManage && (
-                      <>
-                        <div className="form-group">
-                          <label>Assign Technician</label>
-                          <select className="form-control" value={assignDraft} onChange={(e) => setAssignDraft(e.target.value)}>
-                            <option value="">Select technician</option>
-                            {STAFF_OPTIONS.map((staff) => (
-                              <option key={staff.email} value={staff.name}>{staff.name} ({staff.role})</option>
-                            ))}
-                          </select>
-                        </div>
-                        <button className="btn btn-secondary btn-sm" style={{ marginBottom: 10 }} onClick={saveAssignment}>Assign</button>
-                      </>
+                      <div className="form-group">
+                        <label style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-3)', letterSpacing: '0.5px' }}>ASSIGN TECHNICIAN</label>
+                        <select className="form-control" value={assignDraft} onChange={(e) => setAssignDraft(e.target.value)}>
+                          <option value="">Select technician</option>
+                          {STAFF_OPTIONS.map((staff) => (
+                            <option key={staff.email} value={staff.name}>{staff.name} ({staff.role})</option>
+                          ))}
+                        </select>
+                        <button className="btn btn-secondary btn-sm" style={{ marginTop: 8, width: '100%' }} onClick={saveAssignment}>Assign</button>
+                      </div>
                     )}
+
                     <div className="form-group">
-                      <label>Resolution Notes</label>
+                      <label style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-3)', letterSpacing: '0.5px' }}>RESOLUTION NOTES</label>
                       <textarea
                         className="form-control"
                         rows={3}
+                        placeholder="Add resolution details..."
                         value={resolutionDraft}
                         onChange={(e) => setResolutionDraft(e.target.value)}
                       />
                     </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button className="btn btn-primary btn-sm" onClick={() => applyStatus(statusDraft)}>Update Status</button>
-                      <button className="btn btn-success btn-sm" disabled={!canTransition(viewingTicket.status, 'RESOLVED')} onClick={() => applyStatus('RESOLVED')}>Mark Resolved</button>
-                      <button className="btn btn-danger btn-sm" disabled={!canTransition(viewingTicket.status, 'REJECTED')} onClick={() => applyStatus('REJECTED')}>Reject Ticket</button>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                      <button className="btn btn-primary" onClick={() => applyStatus(statusDraft)}>Update Status</button>
+                      <button 
+                        className="btn btn-success" 
+                        onClick={() => applyStatus('RESOLVED')}
+                      >
+                        Mark Resolved
+                      </button>
                     </div>
-                    <div style={{ marginTop: 10 }}>
-                      <button className="btn btn-secondary btn-sm" onClick={saveResolution}>Save Notes</button>
-                    </div>
+                    
+                    <button 
+                      className="btn btn-danger" 
+                      style={{ width: '100%', marginBottom: 10 }}
+                      onClick={() => applyStatus('REJECTED')}
+                    >
+                      Reject Ticket
+                    </button>
+
+                    <button className="btn btn-secondary" style={{ width: '100%' }} onClick={saveResolution}>Save Notes</button>
                   </div>
                 )}
 
