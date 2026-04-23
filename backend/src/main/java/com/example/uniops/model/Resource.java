@@ -1,6 +1,7 @@
 package com.example.uniops.model;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,6 +15,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,6 +38,7 @@ public class Resource {
     private String name;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "Resource type is required")
     @Column(nullable = false)
     private ResourceType type;
 
@@ -48,9 +51,16 @@ public class Resource {
     private int capacity;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "Resource status is required")
     @Column(nullable = false)
     @Builder.Default
-    private ResourceStatus status = ResourceStatus.AVAILABLE;
+    private ResourceStatus status = ResourceStatus.ACTIVE;
+
+    @Column(name = "available_from")
+    private LocalTime availableFrom;
+
+    @Column(name = "available_to")
+    private LocalTime availableTo;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -80,6 +90,7 @@ public class Resource {
     }
 
     public enum ResourceStatus {
+        ACTIVE, OUT_OF_SERVICE,
         AVAILABLE, OCCUPIED, MAINTENANCE, RETIRED
     }
 }

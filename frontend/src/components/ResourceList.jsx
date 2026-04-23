@@ -2,6 +2,8 @@ import React from 'react'
 import { Building2, MapPin, Users, Pencil, Trash2 } from 'lucide-react'
 
 const statusBadge = {
+  ACTIVE:      'badge-green',
+  OUT_OF_SERVICE: 'badge-red',
   AVAILABLE:   'badge-green',
   OCCUPIED:    'badge-yellow',
   MAINTENANCE: 'badge-orange',

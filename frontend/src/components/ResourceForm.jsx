@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 
 const TYPES = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'SPORTS', 'STUDY_ROOM', 'AUDITORIUM', 'OTHER']
-const STATUSES = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'RETIRED']
+const STATUSES = ['ACTIVE', 'OUT_OF_SERVICE']
 
 export default function ResourceForm({ initial, onSubmit, onCancel }) {
   const [form, setForm] = useState({
     name: '', type: 'LECTURE_HALL', location: '',
-    capacity: 10, status: 'AVAILABLE', description: '',
+    capacity: 10, status: 'ACTIVE', description: '',
+    availableFrom: '', availableTo: '',
     ...initial,
   })
 
@@ -46,6 +47,16 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
           <select className="form-control" value={form.status} onChange={e => set('status', e.target.value)}>
             {STATUSES.map(s => <option key={s}>{s}</option>)}
           </select>
+        </div>
+        <div className="form-group">
+          <label>Available From</label>
+          <input className="form-control" type="time" value={form.availableFrom || ''}
+            onChange={e => set('availableFrom', e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label>Available To</label>
+          <input className="form-control" type="time" value={form.availableTo || ''}
+            onChange={e => set('availableTo', e.target.value)} />
         </div>
       </div>
       <div className="form-group">
