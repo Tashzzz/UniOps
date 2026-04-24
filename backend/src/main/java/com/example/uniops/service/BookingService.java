@@ -1,6 +1,7 @@
 package com.example.uniops.service;
 
 import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -132,6 +133,10 @@ public class BookingService {
             throw new IllegalArgumentException("Rejection reason is required when rejecting a booking.");
         }
 
+        if (status == BookingStatus.APPROVED) {
+            validateBookingWithinResourceWindow(booking.getResource(), booking.getStartTime(), booking.getEndTime());
+        }
+
         booking.setStatus(status);
         booking.setStatusReason(reason);
         Booking updated = bookingRepository.save(booking);
@@ -171,13 +176,20 @@ public class BookingService {
         if (resource.getStatus() == Resource.ResourceStatus.OUT_OF_SERVICE || resource.getStatus() == Resource.ResourceStatus.MAINTENANCE) {
             throw new IllegalStateException("Selected resource is currently unavailable for booking.");
         }
-        if (resource.getAvailableFrom() != null && dto.getStartTime().toLocalTime().isBefore(resource.getAvailableFrom())) {
+        validateBookingWithinResourceWindow(resource, dto.getStartTime(), dto.getEndTime());
+    }
+
+    private void validateBookingWithinResourceWindow(Resource resource, LocalDateTime startTime, LocalDateTime endTime) {
+        if (!startTime.toLocalDate().equals(endTime.toLocalDate())) {
+            throw new IllegalStateException("Booking must start and end on the same day.");
+        }
+        if (resource.getAvailableFrom() != null && startTime.toLocalTime().isBefore(resource.getAvailableFrom())) {
             throw new IllegalStateException("Requested start time is outside the resource availability window.");
         }
-        if (resource.getAvailableTo() != null && dto.getEndTime().toLocalTime().isAfter(resource.getAvailableTo())) {
+        if (resource.getAvailableTo() != null && endTime.toLocalTime().isAfter(resource.getAvailableTo())) {
             throw new IllegalStateException("Requested end time is outside the resource availability window.");
         }
-        if (!isDayAllowed(resource.getAvailableDays(), dto.getStartTime().getDayOfWeek())) {
+        if (!isDayAllowed(resource.getAvailableDays(), startTime.getDayOfWeek())) {
             throw new IllegalStateException("Selected resource is not available on the requested day.");
         }
     }
