@@ -3,13 +3,14 @@ import { resolveMediaUrl } from '../services/api'
 
 const TYPES = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'SPORTS', 'STUDY_ROOM', 'AUDITORIUM', 'OTHER']
 const STATUSES = ['ACTIVE', 'OUT_OF_SERVICE']
+const AVAILABLE_DAYS = ['ALL_DAYS', 'WEEKDAYS', 'WEEKENDS', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 
 export default function ResourceForm({ initial, onSubmit, onCancel }) {
   const [form, setForm] = useState({
     name: '', type: 'LECTURE_HALL', location: '',
     capacity: 10, status: 'ACTIVE', description: '',
-    availableFrom: '', availableTo: '',
-    ...initial,
+    availableFrom: '', availableTo: '', availableDays: 'ALL_DAYS',
+    ...(initial ? { ...initial, status: initial.status === 'AVAILABLE' ? 'ACTIVE' : initial.status } : {}),
   })
   const [imageFile, setImageFile] = useState(null)
 
@@ -63,6 +64,12 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
           <label>Available To</label>
           <input className="form-control" type="time" value={form.availableTo || ''}
             onChange={e => set('availableTo', e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label>Available Days</label>
+          <select className="form-control" value={form.availableDays || 'ALL_DAYS'} onChange={e => set('availableDays', e.target.value)}>
+            {AVAILABLE_DAYS.map(d => <option key={d} value={d}>{d.replace(/_/g, ' ')}</option>)}
+          </select>
         </div>
       </div>
       <div className="form-group">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Search } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import resourceService from '../services/resourceService'
 import ResourceList from '../components/ResourceList'
@@ -12,6 +13,7 @@ const STATUSES = ['ACTIVE', 'OUT_OF_SERVICE']
 
 export default function ResourcesPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [resources,  setResources]  = useState([])
   const [loading,    setLoading]    = useState(true)
   const [search,     setSearch]     = useState('')
@@ -25,6 +27,7 @@ export default function ResourcesPage() {
   const [editing,    setEditing]    = useState(null)
 
   const canManage = user?.role === 'ADMIN' || user?.role === 'STAFF'
+  const canBook = user?.role === 'STUDENT'
   const isAdmin = user?.role === 'ADMIN'
 
   const getFilterParams = useCallback(() => ({
@@ -89,6 +92,10 @@ export default function ResourcesPage() {
     if (!window.confirm('Delete this resource?')) return
     try { await resourceService.delete(id); toast.success('Deleted'); load(getFilterParams()); loadAnalytics() }
     catch (err) { toast.error(err.message) }
+  }
+
+  const handleBook = (resource) => {
+    navigate(`/bookings?resourceId=${resource.id}`)
   }
 
   return (
@@ -157,7 +164,14 @@ export default function ResourcesPage() {
 
       {loading
         ? <div className="loading-container"><div className="spinner"/></div>
-        : <ResourceList resources={resources} onEdit={r => { setEditing(r); setShowModal(true) }} onDelete={handleDelete} canManage={canManage}/>
+        : <ResourceList
+            resources={resources}
+            onEdit={r => { setEditing(r); setShowModal(true) }}
+            onDelete={handleDelete}
+            onBook={handleBook}
+            canManage={canManage}
+            canBook={canBook}
+          />
       }
 
       {showModal && (

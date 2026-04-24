@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react'
 import resourceService from '../services/resourceService'
 import { useAuth } from '../context/AuthContext'
 
-export default function BookingForm({ onSubmit, onCancel }) {
+export default function BookingForm({ onSubmit, onCancel, initialResourceId = '' }) {
   const { user } = useAuth()
   const [resources, setResources] = useState([])
   const [resourceQuery, setResourceQuery] = useState('')
   const [resourceMenuOpen, setResourceMenuOpen] = useState(false)
   const [form, setForm] = useState({
-    resourceId: '', title: '', startTime: '', endTime: '', notes: '',
+    resourceId: initialResourceId ? String(initialResourceId) : '', title: '', startTime: '', endTime: '', notes: '',
   })
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function BookingForm({ onSubmit, onCancel }) {
   )
 
   const bookableResources = useMemo(() => {
-    const allowedStatuses = new Set(['ACTIVE', 'AVAILABLE'])
+    const allowedStatuses = new Set(['ACTIVE'])
     const search = resourceQuery.trim().toLowerCase()
 
     return resources
@@ -36,6 +36,11 @@ export default function BookingForm({ onSubmit, onCancel }) {
       })
       .sort((left, right) => (left.name || '').localeCompare(right.name || ''))
   }, [resources, resourceQuery])
+
+  useEffect(() => {
+    if (!initialResourceId) return
+    setForm(current => ({ ...current, resourceId: String(initialResourceId) }))
+  }, [initialResourceId])
 
   const selectedResource = useMemo(
     () => bookableResources.find(resource => String(resource.id) === String(form.resourceId)),
@@ -52,6 +57,14 @@ export default function BookingForm({ onSubmit, onCancel }) {
     setResourceQuery(nextResource ? formatResourceLabel(nextResource) : '')
     setResourceMenuOpen(false)
   }
+
+  useEffect(() => {
+    if (!form.resourceId) return
+    const selected = resources.find(resource => String(resource.id) === String(form.resourceId))
+    if (selected) {
+      setResourceQuery(formatResourceLabel(selected))
+    }
+  }, [form.resourceId, resources])
 
   const handleSubmit = (e) => {
     e.preventDefault()

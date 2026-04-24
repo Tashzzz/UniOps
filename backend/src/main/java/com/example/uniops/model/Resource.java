@@ -65,6 +65,11 @@ public class Resource {
     @Column(name = "available_to")
     private LocalTime availableTo;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "available_days", nullable = false)
+    @Builder.Default
+    private AvailabilityDays availableDays = AvailabilityDays.ALL_DAYS;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -118,6 +123,31 @@ public class Resource {
                     .replace('-', '_')
                     .replace(' ', '_');
             return ResourceStatus.valueOf(normalized);
+        }
+    }
+
+    public enum AvailabilityDays {
+        ALL_DAYS,
+        WEEKDAYS,
+        WEEKENDS,
+        MONDAY,
+        TUESDAY,
+        WEDNESDAY,
+        THURSDAY,
+        FRIDAY,
+        SATURDAY,
+        SUNDAY;
+
+        @JsonCreator
+        public static AvailabilityDays fromValue(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            String normalized = value.trim()
+                    .toUpperCase(Locale.ROOT)
+                    .replace('-', '_')
+                    .replace(' ', '_');
+            return AvailabilityDays.valueOf(normalized);
         }
     }
 }

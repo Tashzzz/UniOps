@@ -34,13 +34,20 @@ public class ResourceStatusSchemaMigration implements CommandLineRunner {
             if (dataTypes.isEmpty()) {
                 return;
             }
+            
 
             String dataType = dataTypes.get(0);
             if ("enum".equalsIgnoreCase(dataType)) {
                 jdbcTemplate.execute("ALTER TABLE resources MODIFY COLUMN status VARCHAR(50) NOT NULL");
                 log.info("Migrated resources.status from ENUM to VARCHAR(50) for status compatibility.");
             }
-        } catch (Exception ex) {
+
+            int normalized = jdbcTemplate.update(
+                    "UPDATE resources SET status = 'ACTIVE' WHERE status = 'AVAILABLE'");
+            if (normalized > 0) {
+                log.info("Normalized {} resource rows from AVAILABLE to ACTIVE.", normalized);
+            }
+        } catch (RuntimeException ex) {
             log.warn("Skipping resources.status schema migration: {}", ex.getMessage());
         }
     }

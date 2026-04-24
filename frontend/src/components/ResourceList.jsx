@@ -11,7 +11,43 @@ const statusBadge = {
   RETIRED:     'badge-gray',
 }
 
-export default function ResourceList({ resources, onEdit, onDelete, canManage }) {
+const DAY_INDEX = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+}
+
+const isWithinTimeRange = (now, availableFrom, availableTo) => {
+  if (!availableFrom || !availableTo) return true
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const [fromHour, fromMinute] = String(availableFrom).split(':').map(Number)
+  const [toHour, toMinute] = String(availableTo).split(':').map(Number)
+  const fromMinutes = fromHour * 60 + fromMinute
+  const toMinutes = toHour * 60 + toMinute
+  return nowMinutes >= fromMinutes && nowMinutes < toMinutes
+}
+
+const isWithinDayRule = (now, availableDays) => {
+  if (!availableDays || availableDays === 'ALL_DAYS') return true
+  const day = now.getDay()
+  if (availableDays === 'WEEKDAYS') return day >= 1 && day <= 5
+  if (availableDays === 'WEEKENDS') return day === 0 || day === 6
+  return DAY_INDEX[availableDays] === day
+}
+
+const isResourceOpenNow = (resource) => {
+  if (resource.status !== 'ACTIVE' && resource.status !== 'AVAILABLE') return false
+  const now = new Date()
+  return isWithinDayRule(now, resource.availableDays) && isWithinTimeRange(now, resource.availableFrom, resource.availableTo)
+}
+
+const formatStatus = (status) => (status === 'AVAILABLE' ? 'ACTIVE' : status)
+
+export default function ResourceList({ resources, onEdit, onDelete, onBook, canManage, canBook }) {
   if (!resources.length) {
     return (
       <div className="empty-state">
@@ -36,11 +72,15 @@ export default function ResourceList({ resources, onEdit, onDelete, canManage })
           <div className="resource-card-body">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
               <div className="resource-card-title">{r.name}</div>
-              <span className={`badge ${statusBadge[r.status]||'badge-gray'}`}>{r.status}</span>
+              <span className={`badge ${statusBadge[formatStatus(r.status)]||'badge-gray'}`}>{formatStatus(r.status)}</span>
             </div>
             <div className="resource-card-meta">
               <div><MapPin size={11}/> {r.location}</div>
               <div><Users size={11}/> Capacity: {r.capacity}</div>
+              <div>{isResourceOpenNow(r) ? 'Currently Open' : 'Currently Closed'}</div>
+              {(r.availableFrom && r.availableTo) && (
+                <div>{r.availableDays ? r.availableDays.replace(/_/g, ' ') : 'All Days'} {r.availableFrom.slice(0,5)} - {r.availableTo.slice(0,5)}</div>
+              )}
             </div>
             {r.description && (
               <p style={{ fontSize:12, color:'var(--text-3)', marginTop:8, lineHeight:1.5 }}>
@@ -49,12 +89,17 @@ export default function ResourceList({ resources, onEdit, onDelete, canManage })
             )}
             <div className="resource-card-footer">
               <span className="type-chip">{r.type.replace('_',' ')}</span>
-              {canManage && (
-                <div style={{ display:'flex', gap:6 }}>
+              <div style={{ display:'flex', gap:6 }}>
+                {canBook && (
+                  <button className="btn btn-sm btn-primary" onClick={() => onBook?.(r)}>Book</button>
+                )}
+                {canManage && (
+                  <>
                   <button className="btn btn-sm btn-secondary btn-icon" onClick={()=>onEdit(r)}><Pencil size={12}/></button>
                   <button className="btn btn-sm btn-danger   btn-icon" onClick={()=>onDelete(r.id)}><Trash2 size={12}/></button>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

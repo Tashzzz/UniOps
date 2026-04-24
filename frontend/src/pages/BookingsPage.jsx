@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, CalendarCheck } from 'lucide-react'
 import { format } from 'date-fns'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import bookingService from '../services/bookingService'
 import BookingForm from '../components/BookingForm'
@@ -16,6 +17,7 @@ const STATUS_BADGE = {
 
 export default function BookingsPage() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [bookings,     setBookings]     = useState([])
   const [loading,      setLoading]      = useState(true)
   const [showModal,    setShowModal]    = useState(false)
@@ -23,6 +25,13 @@ export default function BookingsPage() {
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
   const canCreateBooking = !isAdmin
+  const preselectedResourceId = searchParams.get('resourceId') || ''
+
+  useEffect(() => {
+    if (canCreateBooking && preselectedResourceId) {
+      setShowModal(true)
+    }
+  }, [canCreateBooking, preselectedResourceId])
 
   const load = () => {
     if (!user?.id) return
@@ -49,6 +58,9 @@ export default function BookingsPage() {
       await bookingService.create(data)
       toast.success('Booking submitted!')
       setShowModal(false)
+      if (preselectedResourceId) {
+        setSearchParams({})
+      }
       load()
     } catch (err) {
       toast.error(err.message || 'Failed to create booking')
@@ -174,7 +186,16 @@ export default function BookingsPage() {
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal">
             <h2>New Booking</h2>
-            <BookingForm onSubmit={handleCreate} onCancel={() => setShowModal(false)} />
+            <BookingForm
+              initialResourceId={preselectedResourceId}
+              onSubmit={handleCreate}
+              onCancel={() => {
+                setShowModal(false)
+                if (preselectedResourceId) {
+                  setSearchParams({})
+                }
+              }}
+            />
           </div>
         </div>
       )}
