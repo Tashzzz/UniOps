@@ -1,9 +1,25 @@
 package com.example.uniops.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "bookings")
@@ -28,6 +44,18 @@ public class Booking {
     @NotBlank(message = "Booking title is required")
     @Column(nullable = false)
     private String title;
+
+    @NotBlank(message = "Booking purpose is required")
+    @Column(nullable = false)
+    private String purpose;
+
+    @NotBlank(message = "Booking user email is required")
+    @Column(name = "user_email", nullable = false)
+    private String userEmail;
+
+    @NotBlank(message = "Booking user name is required")
+    @Column(name = "user_name", nullable = false)
+    private String userName;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

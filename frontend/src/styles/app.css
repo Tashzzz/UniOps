@@ -319,6 +319,60 @@ tbody tr:hover td { background: #fafbff; }
   color: var(--red);
 }
 
+.resource-combobox {
+  position: relative;
+}
+
+.resource-combobox-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+}
+
+.resource-combobox-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.resource-combobox-option:hover {
+  background: #eef1fe;
+}
+
+.resource-combobox-option-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.resource-combobox-option-meta {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.resource-combobox-empty {
+  padding: 10px 12px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
 /* ── Modal ───────────────────────────────────────────── */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(17,24,39,0.5);

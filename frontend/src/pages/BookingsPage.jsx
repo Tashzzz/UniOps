@@ -25,6 +25,7 @@ export default function BookingsPage() {
   const [viewQrBooking, setViewQrBooking] = useState(null)
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
+  const canCreateBooking = !isAdmin
 
   const load = () => {
     if (!user?.id) return
@@ -90,9 +91,11 @@ export default function BookingsPage() {
           <h1>Bookings</h1>
           <p>{isAdmin ? 'Manage all campus resource bookings' : 'Your resource booking requests'}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={16} /> New Booking
-        </button>
+        {canCreateBooking && (
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> New Booking
+          </button>
+        )}
       </div>
 
       <div className="toolbar">
@@ -176,7 +179,7 @@ export default function BookingsPage() {
         </div>
       )}
 
-      {showModal && (
+      {showModal && canCreateBooking && (
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal">
             <h2>New Booking</h2>
