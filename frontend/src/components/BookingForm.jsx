@@ -7,6 +7,7 @@ export default function BookingForm({ onSubmit, onCancel, initialResourceId = ''
   const [resources, setResources] = useState([])
   const [resourceQuery, setResourceQuery] = useState('')
   const [resourceMenuOpen, setResourceMenuOpen] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [form, setForm] = useState({
     resourceId: initialResourceId ? String(initialResourceId) : '', title: '', startTime: '', endTime: '', notes: '',
   })
@@ -47,6 +48,55 @@ export default function BookingForm({ onSubmit, onCancel, initialResourceId = ''
     [bookableResources, form.resourceId]
   )
 
+  const DAY_INDEX = {
+    SUNDAY: 0,
+    MONDAY: 1,
+    TUESDAY: 2,
+    WEDNESDAY: 3,
+    THURSDAY: 4,
+    FRIDAY: 5,
+    SATURDAY: 6,
+  }
+
+  const toMinutes = (timeValue) => {
+    if (!timeValue) return null
+    const [hour, minute] = String(timeValue).split(':').map(Number)
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return null
+    return (hour * 60) + minute
+  }
+
+  const isDayAllowed = (dayValue, selectedDay) => {
+    if (!dayValue || dayValue === 'ALL_DAYS') return true
+    if (dayValue === 'WEEKDAYS') return selectedDay >= 1 && selectedDay <= 5
+    if (dayValue === 'WEEKENDS') return selectedDay === 0 || selectedDay === 6
+    return DAY_INDEX[dayValue] === selectedDay
+  }
+
+  const validateAgainstAvailability = () => {
+    if (!selectedResource || !form.startTime || !form.endTime) return null
+
+    const startDate = new Date(form.startTime)
+    const endDate = new Date(form.endTime)
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null
+
+    if (!isDayAllowed(selectedResource.availableDays, startDate.getDay())) {
+      return `Selected resource is available on ${String(selectedResource.availableDays || 'ALL_DAYS').replace(/_/g, ' ')} only.`
+    }
+
+    const startMinutes = startDate.getHours() * 60 + startDate.getMinutes()
+    const endMinutes = endDate.getHours() * 60 + endDate.getMinutes()
+    const fromMinutes = toMinutes(selectedResource.availableFrom)
+    const toWindowMinutes = toMinutes(selectedResource.availableTo)
+
+    if (fromMinutes != null && startMinutes < fromMinutes) {
+      return `Start time must be within availability window (${String(selectedResource.availableFrom).slice(0, 5)} - ${String(selectedResource.availableTo || '--:--').slice(0, 5)}).`
+    }
+    if (toWindowMinutes != null && endMinutes > toWindowMinutes) {
+      return `End time must be within availability window (${String(selectedResource.availableFrom || '--:--').slice(0, 5)} - ${String(selectedResource.availableTo).slice(0, 5)}).`
+    }
+    return null
+  }
+
   const resourceOptions = resourceMenuOpen
     ? bookableResources
     : []
@@ -68,13 +118,21 @@ export default function BookingForm({ onSubmit, onCancel, initialResourceId = ''
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    setSubmitError('')
+
+    const availabilityError = validateAgainstAvailability()
+    if (availabilityError) {
+      setSubmitError(availabilityError)
+      return
+    }
 
     const payload = {
       ...form,
       resourceId: Number(form.resourceId),
       userId: user.id,
-      startTime: new Date(form.startTime).toISOString(),
-      endTime: new Date(form.endTime).toISOString(),
+      // Keep local datetime-local values to avoid UTC timezone shifts.
+      startTime: form.startTime,
+      endTime: form.endTime,
     }
 
     onSubmit(payload)
@@ -148,11 +206,23 @@ export default function BookingForm({ onSubmit, onCancel, initialResourceId = ''
             onChange={e => set('endTime', e.target.value)} />
         </div>
       </div>
+      {selectedResource && (selectedResource.availableFrom || selectedResource.availableTo) && (
+        <p className="field-error" style={{ color: 'var(--text-3)', marginTop: -6, marginBottom: 12 }}>
+          Availability: {(selectedResource.availableDays || 'ALL_DAYS').replace(/_/g, ' ')}{' '}
+          {selectedResource.availableFrom ? String(selectedResource.availableFrom).slice(0, 5) : '--:--'} -{' '}
+          {selectedResource.availableTo ? String(selectedResource.availableTo).slice(0, 5) : '--:--'}
+        </p>
+      )}
       <div className="form-group">
         <label>Notes</label>
         <textarea className="form-control" rows={2} value={form.notes}
           onChange={e => set('notes', e.target.value)} placeholder="Optional notes…" />
       </div>
+      {submitError && (
+        <p className="field-error" style={{ marginTop: -4, marginBottom: 10 }}>
+          {submitError}
+        </p>
+      )}
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
         <button type="submit" className="btn btn-primary">Submit Booking</button>
