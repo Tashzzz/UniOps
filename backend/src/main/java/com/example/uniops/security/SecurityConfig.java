@@ -17,6 +17,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.example.uniops.repository.UserRepository;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -44,8 +46,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/error", "/uploads/**").permitAll()
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                .requestMatchers("/api/auth/login", "/api/auth/login-or-register").permitAll()
-                .requestMatchers("/api/auth/me").authenticated()
+                .requestMatchers("/api/auth/login", "/api/auth/login-or-register", "/api/auth/me", "/api/auth/google").permitAll()
                 .requestMatchers("/api/auth/users").hasAnyRole("ADMIN", "STAFF")
                 .anyRequest().permitAll())
             .logout(Customizer.withDefaults());
@@ -63,9 +64,20 @@ public class SecurityConfig {
     }
 
     @Bean
+    public HeaderUserAuthenticationFilter headerUserAuthenticationFilter(ObjectProvider<UserRepository> userRepositoryProvider) {
+        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
+        if (userRepository == null) {
+            return null;
+        }
+        return new HeaderUserAuthenticationFilter(userRepository);
+    }
+
+    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

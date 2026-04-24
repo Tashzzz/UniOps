@@ -21,24 +21,39 @@ export default function LoginPage() {
   const [email,    setEmail]   = useState('')
   const [error,    setError]   = useState('')
   const [loading,  setLoading] = useState(false)
+  const [googleEnabled, setGoogleEnabled] = useState(false)
+
+  useEffect(() => {
+    api.get('/auth/google')
+      .then((res) => setGoogleEnabled(Boolean(res.data?.enabled)))
+      .catch(() => setGoogleEnabled(false))
+  }, [])
+
+  const resolveRole = (emailVal, roleVal) => {
+    if (roleVal) return roleVal
+    const normalizedEmail = emailVal.trim().toLowerCase()
+    const matchedDemo = DEMO_ACCOUNTS.find((account) => account.email.toLowerCase() === normalizedEmail)
+    return matchedDemo?.role || 'STUDENT'
+  }
 
   const doLogin = async (emailVal, roleVal) => {
     setError(''); setLoading(true)
     try {
       const res = await api.post('/auth/login-or-register', {
-        email: emailVal,
-        name: emailVal.split('@')[0],
-        role: roleVal,
+        email: emailVal.trim(),
+        name: emailVal.trim().split('@')[0],
+        role: resolveRole(emailVal, roleVal),
       })
       login(res.data)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'No account found with that email.')
+      const message = err?.message || err.response?.data?.message || 'Login failed'
+      setError(message)
     } finally { setLoading(false) }
   }
 
   useEffect(() => {
-    if (searchParams.get('oauth') !== 'success') return
+    if (searchParams.get('oauth') !== 'success' || !googleEnabled) return
     setLoading(true)
     api.get('/auth/me')
       .then((res) => {
@@ -50,9 +65,13 @@ export default function LoginPage() {
         setLoading(false)
         setSearchParams({})
       })
-  }, [searchParams, setSearchParams, login, navigate])
+  }, [searchParams, setSearchParams, login, navigate, googleEnabled])
 
   const signInWithGoogle = () => {
+    if (!googleEnabled) {
+      setError('Google sign-in is not configured on this server.')
+      return
+    }
     setLoading(true)
     setError('')
     // Navigate directly to the OAuth2 authorization endpoint (proxied to backend)
@@ -150,14 +169,20 @@ export default function LoginPage() {
         >
           {loading ? 'Signing in…' : 'Sign In →'}
         </button>
-        <button
-          onClick={signInWithGoogle}
-          disabled={loading}
-          className="btn btn-secondary"
-          style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: 14, marginTop: 10 }}
-        >
-          Sign In with Google
-        </button>
+        {googleEnabled ? (
+          <button
+            onClick={signInWithGoogle}
+            disabled={loading}
+            className="btn btn-secondary"
+            style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: 14, marginTop: 10 }}
+          >
+            Sign In with Google
+          </button>
+        ) : (
+          <div style={{ marginTop: 10, fontSize: 12, color: '#6b7280', textAlign: 'center' }}>
+            Google sign-in is disabled in local mode.
+          </div>
+        )}
 
         {/* Divider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0 16px' }}>

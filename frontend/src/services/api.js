@@ -26,7 +26,9 @@ api.interceptors.response.use(
 
 api.interceptors.request.use((config) => {
   const user = getSessionUser()
-  if (user?.email) {
+  const url = config.url || ''
+  const isPublicAuthCall = url.includes('/auth/login') || url.includes('/auth/login-or-register') || url.includes('/auth/google')
+  if (user?.email && !isPublicAuthCall) {
     config.headers['X-User-Email'] = user.email
   }
   return config

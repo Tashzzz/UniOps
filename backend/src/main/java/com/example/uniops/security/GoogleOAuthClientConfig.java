@@ -1,9 +1,12 @@
 package com.example.uniops.security;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Condition;
+import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
@@ -11,7 +14,6 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.util.StringUtils;
 
 @Configuration
-@ConditionalOnProperty(name = { "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET" })
 public class GoogleOAuthClientConfig {
 
     @Value("${GOOGLE_CLIENT_ID:}")
@@ -21,11 +23,8 @@ public class GoogleOAuthClientConfig {
     private String googleClientSecret;
 
     @Bean
+    @Conditional(OAuthCredentialsPresentCondition.class)
     public ClientRegistrationRepository clientRegistrationRepository() {
-        if (!StringUtils.hasText(googleClientId) || !StringUtils.hasText(googleClientSecret)) {
-            throw new IllegalStateException("Google OAuth client is enabled but credentials are empty.");
-        }
-
         ClientRegistration google = ClientRegistration.withRegistrationId("google")
                 .clientId(googleClientId)
                 .clientSecret(googleClientSecret)
@@ -40,5 +39,14 @@ public class GoogleOAuthClientConfig {
                 .build();
 
         return new InMemoryClientRegistrationRepository(google);
+    }
+
+    static class OAuthCredentialsPresentCondition implements Condition {
+        @Override
+        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+            String clientId = context.getEnvironment().getProperty("GOOGLE_CLIENT_ID");
+            String clientSecret = context.getEnvironment().getProperty("GOOGLE_CLIENT_SECRET");
+            return StringUtils.hasText(clientId) && StringUtils.hasText(clientSecret);
+        }
     }
 }
