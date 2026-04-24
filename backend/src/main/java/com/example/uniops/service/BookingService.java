@@ -1,5 +1,10 @@
 package com.example.uniops.service;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.uniops.dto.BookingRequestDTO;
 import com.example.uniops.exception.ResourceNotFoundException;
 import com.example.uniops.model.Booking;
@@ -10,10 +15,8 @@ import com.example.uniops.model.user;
 import com.example.uniops.repository.BookingRepository;
 import com.example.uniops.repository.ResourceRepository;
 import com.example.uniops.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -58,13 +61,16 @@ public class BookingService {
         List<Booking> conflicts = bookingRepository.findConflictingBookings(
                 dto.getResourceId(), dto.getStartTime(), dto.getEndTime());
         if (!conflicts.isEmpty()) {
-            throw new IllegalStateException("Resource is already booked during this time slot");
+            throw new IllegalStateException("This resource is already booked for the selected time slot.");
         }
 
         Booking booking = Booking.builder()
                 .resource(resource)
                 .user(user)
                 .title(dto.getTitle())
+                .purpose(dto.getTitle())
+            .userEmail(user.getEmail())
+                .userName(user.getName())
                 .startTime(dto.getStartTime())
                 .endTime(dto.getEndTime())
                 .notes(dto.getNotes())
