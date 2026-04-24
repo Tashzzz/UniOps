@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import bookingService from '../services/bookingService'
 import BookingForm from '../components/BookingForm'
+import QRCode from 'qrcode'
 
 const STATUS_BADGE = {
   PENDING:   'badge-yellow',
@@ -21,6 +22,9 @@ export default function BookingsPage() {
   const [bookings,     setBookings]     = useState([])
   const [loading,      setLoading]      = useState(true)
   const [showModal,    setShowModal]    = useState(false)
+  const [showQrModal,  setShowQrModal]  = useState(false)
+  const [qrBooking,    setQrBooking]    = useState(null)
+  const [qrImage,      setQrImage]      = useState('')
   const [filterStatus, setFilterStatus] = useState('')
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
@@ -52,6 +56,17 @@ export default function BookingsPage() {
   }
 
   useEffect(load, [user])
+
+  useEffect(() => {
+    if (!showQrModal || !qrBooking) return
+    const payload = buildQrPayload(qrBooking)
+    QRCode.toDataURL(payload, { width: 280, margin: 1 })
+      .then((url) => setQrImage(url))
+      .catch(() => {
+        setQrImage('')
+        toast.error('Failed to generate booking QR')
+      })
+  }, [showQrModal, qrBooking])
 
   const handleCreate = async (data) => {
     try {
@@ -92,6 +107,30 @@ export default function BookingsPage() {
   const displayed = filterStatus
     ? bookings.filter(b => b.status === filterStatus)
     : bookings
+
+  const buildQrPayload = (booking) => {
+    const startLabel = format(new Date(booking.startTime), 'yyyy-MM-dd HH:mm')
+    const endLabel = format(new Date(booking.endTime), 'yyyy-MM-dd HH:mm')
+    return [
+      'UniOps Booking',
+      `Booking ID: ${booking.id}`,
+      `Title: ${booking.title}`,
+      `Resource: ${booking.resource?.name || '-'}`,
+      `Start: ${startLabel}`,
+      `End: ${endLabel}`,
+      `Status: ${booking.status}`,
+    ].join('\n')
+  }
+
+  const openQrModal = (booking) => {
+    if (booking.status !== 'APPROVED') {
+      toast('QR is available only for approved bookings.')
+      return
+    }
+    setQrBooking(booking)
+    setQrImage('')
+    setShowQrModal(true)
+  }
 
   return (
     <div>
@@ -173,6 +212,11 @@ export default function BookingsPage() {
                         {!isAdmin && b.status === 'PENDING' && (
                           <button className="btn btn-sm btn-danger" onClick={() => handleCancel(b.id)}>Cancel</button>
                         )}
+                        {b.status === 'APPROVED' && (
+                          <button className="btn btn-sm btn-secondary" onClick={() => openQrModal(b)}>
+                            View QR
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -197,6 +241,40 @@ export default function BookingsPage() {
                 }
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {showQrModal && qrBooking && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setShowQrModal(false)}>
+          <div className="modal booking-qr-modal">
+            <h2>Booking QR Code</h2>
+            <p className="booking-qr-subtitle">
+              Scan this QR to view meaningful booking details on any phone scanner.
+            </p>
+
+            <div className="booking-qr-box">
+              {qrImage ? (
+                <img src={qrImage} alt="Booking QR code" className="booking-qr-image" />
+              ) : (
+                <div className="loading-container" style={{ padding: 20 }}><div className="spinner" /></div>
+              )}
+            </div>
+
+            <div className="booking-qr-details">
+              <div><strong>Title:</strong> {qrBooking.title}</div>
+              <div><strong>Resource:</strong> {qrBooking.resource?.name}</div>
+              <div><strong>Time:</strong> {format(new Date(qrBooking.startTime), 'MMM d, HH:mm')} - {format(new Date(qrBooking.endTime), 'HH:mm')}</div>
+            </div>
+
+            <details style={{ marginTop: 10 }}>
+              <summary style={{ cursor: 'pointer', color: 'var(--text-3)', fontSize: 12 }}>QR payload preview</summary>
+              <pre className="booking-qr-payload">{buildQrPayload(qrBooking)}</pre>
+            </details>
+
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowQrModal(false)}>Close</button>
+            </div>
           </div>
         </div>
       )}
