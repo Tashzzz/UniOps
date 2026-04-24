@@ -402,6 +402,12 @@ tbody tr:hover td { background: #fafbff; }
   display: flex; align-items: center; justify-content: center;
 }
 .resource-card-img svg { color: #c7d2fe; }
+.resource-card-img-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .resource-card-body { padding: 16px; }
 .resource-card-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text); }
 .resource-card-meta { font-size: 12px; color: var(--text-3); }
@@ -532,6 +538,21 @@ tbody tr:hover td { background: #fafbff; }
 }
 .file-upload-area input { display: none; }
 .file-upload-area label { cursor: pointer; font-weight: 600; }
+
+.resource-image-preview-wrap {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.resource-image-preview {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  display: block;
+}
 
 .ticket-upload-area {
   background: #f8fafc;

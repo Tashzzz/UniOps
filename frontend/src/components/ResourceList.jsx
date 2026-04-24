@@ -26,7 +26,11 @@ export default function ResourceList({ resources, onEdit, onDelete, canManage })
       {resources.map(r => (
         <div className="resource-card" key={r.id}>
           <div className="resource-card-img">
-            <Building2 size={40} />
+            {r.imageUrl ? (
+              <img src={r.imageUrl} alt={r.name} className="resource-card-img-photo" />
+            ) : (
+              <Building2 size={40} />
+            )}
           </div>
           <div className="resource-card-body">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>

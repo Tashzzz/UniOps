@@ -10,12 +10,17 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
     availableFrom: '', availableTo: '',
     ...initial,
   })
+  const [imageFile, setImageFile] = useState(null)
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  const imagePreview = imageFile
+    ? URL.createObjectURL(imageFile)
+    : form.imageUrl || ''
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit({ ...form, capacity: Number(form.capacity) })
+    onSubmit({ ...form, capacity: Number(form.capacity) }, imageFile)
   }
 
   return (
@@ -63,6 +68,24 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
         <label>Description</label>
         <textarea className="form-control" rows={3} value={form.description}
           onChange={e => set('description', e.target.value)} placeholder="Optional description..." />
+      </div>
+      <div className="form-group">
+        <label>Resource Photo</label>
+        <div className="file-upload-area">
+          <label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={e => setImageFile(e.target.files?.[0] || null)}
+            />
+            Click to select an image (JPG/PNG)
+          </label>
+        </div>
+        {imagePreview && (
+          <div className="resource-image-preview-wrap">
+            <img src={imagePreview} alt="Resource preview" className="resource-image-preview" />
+          </div>
+        )}
       </div>
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>

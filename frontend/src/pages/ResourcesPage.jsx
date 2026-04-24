@@ -67,10 +67,20 @@ export default function ResourcesPage() {
     }
   }, [isAdmin, analyticsDays, loadAnalytics])
 
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (data, imageFile) => {
     try {
-      if (editing) { await resourceService.update(editing.id, data); toast.success('Resource updated') }
-      else         { await resourceService.create(data);             toast.success('Resource created') }
+      let saved
+      if (editing) {
+        saved = (await resourceService.update(editing.id, data)).data
+      } else {
+        saved = (await resourceService.create(data)).data
+      }
+
+      if (imageFile && saved?.id) {
+        await resourceService.uploadImage(saved.id, imageFile)
+      }
+
+      toast.success(editing ? 'Resource updated' : 'Resource created')
       setShowModal(false); setEditing(null); load(getFilterParams()); loadAnalytics()
     } catch (err) { toast.error(err.message) }
   }
