@@ -23,9 +23,9 @@ function AppLayout() {
           <Route path="/resources"     element={<ResourcesPage />} />
           <Route path="/tickets"       element={<TicketsPage />} />
           <Route path="/bookings"      element={<BookingsPage />} />
-          <Route path="/dashboard"     element={<Dashboard />} />
+          
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="*"              element={<Navigate to="/dashboard" replace />} />
+          <Route path="*"              element={<Navigate to="/dashboard" replace />} /> 
         </Routes>
       </main>
     </div>

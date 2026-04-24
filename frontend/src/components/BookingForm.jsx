@@ -17,13 +17,20 @@ export default function BookingForm({ onSubmit, onCancel }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    onSubmit({
-      ...form,
-      resourceId: Number(form.resourceId),
-      userId: user.id,
-    })
+  e.preventDefault()
+
+  const payload = {
+    ...form,
+    resourceId: Number(form.resourceId),
+    userId: user.id,
+    startTime: new Date(form.startTime).toISOString(),
+    endTime: new Date(form.endTime).toISOString(),
   }
+
+  console.log("Sending:", payload) // debug
+
+  onSubmit(payload)
+}
 
   return (
     <form onSubmit={handleSubmit}>
