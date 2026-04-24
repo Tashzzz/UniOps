@@ -71,6 +71,9 @@ public class Booking {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "status_reason", columnDefinition = "TEXT")
+    private String statusReason;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

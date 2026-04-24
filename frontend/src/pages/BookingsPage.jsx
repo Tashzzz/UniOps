@@ -69,7 +69,8 @@ export default function BookingsPage() {
 
   const handleStatus = async (id, status) => {
     try {
-      await bookingService.updateStatus(id, status)
+      const reason = status === 'REJECTED' ? window.prompt('Enter rejection reason') : undefined
+      await bookingService.updateStatus(id, status, reason)
       toast.success(`Booking ${status.toLowerCase()}`)
       load()
     } catch (err) {

@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { Building2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import axios from 'axios'
+import { useEffect } from 'react'
+import api from '../services/api'
 
 const DEMO_ACCOUNTS = [
   { label: 'Admin-Tashini',   email: 'admin@campus.edu', role: 'ADMIN'   },
@@ -16,6 +17,7 @@ const ROLE_COLOR = { ADMIN: '#4f6ef7', STAFF: '#8b5cf6', STUDENT: '#059669' }
 export default function LoginPage() {
   const { login }  = useAuth()
   const navigate   = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [email,    setEmail]   = useState('')
   const [error,    setError]   = useState('')
   const [loading,  setLoading] = useState(false)
@@ -23,7 +25,7 @@ export default function LoginPage() {
   const doLogin = async (emailVal, roleVal) => {
     setError(''); setLoading(true)
     try {
-      const res = await axios.post('/api/auth/login-or-register', {
+      const res = await api.post('/auth/login-or-register', {
         email: emailVal,
         name: emailVal.split('@')[0],
         role: roleVal,
@@ -33,6 +35,34 @@ export default function LoginPage() {
     } catch (err) {
       setError(err.response?.data?.message || 'No account found with that email.')
     } finally { setLoading(false) }
+  }
+
+  useEffect(() => {
+    if (searchParams.get('oauth') !== 'success') return
+    setLoading(true)
+    api.get('/auth/me')
+      .then((res) => {
+        login(res.data)
+        navigate('/dashboard')
+      })
+      .catch(() => setError('Google sign-in failed. Please try again.'))
+      .finally(() => {
+        setLoading(false)
+        setSearchParams({})
+      })
+  }, [searchParams, setSearchParams, login, navigate])
+
+  const signInWithGoogle = () => {
+    setLoading(true)
+    setError('')
+    api.get('/auth/google')
+      .then((res) => {
+        window.location.href = res.data?.url || '/oauth2/authorization/google'
+      })
+      .catch((err) => {
+        setError(err.message || 'Google sign-in is not configured on the backend.')
+        setLoading(false)
+      })
   }
 
   return (
@@ -125,6 +155,14 @@ export default function LoginPage() {
           style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: 14 }}
         >
           {loading ? 'Signing in…' : 'Sign In →'}
+        </button>
+        <button
+          onClick={signInWithGoogle}
+          disabled={loading}
+          className="btn btn-secondary"
+          style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: 14, marginTop: 10 }}
+        >
+          Sign In with Google
         </button>
 
         {/* Divider */}

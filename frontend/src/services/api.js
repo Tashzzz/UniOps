@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getSessionUser } from '../context/AuthContext'
 
 const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
 
@@ -22,5 +23,13 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message))
   }
 )
+
+api.interceptors.request.use((config) => {
+  const user = getSessionUser()
+  if (user?.email) {
+    config.headers['X-User-Email'] = user.email
+  }
+  return config
+})
 
 export default api

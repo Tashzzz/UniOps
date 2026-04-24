@@ -23,7 +23,7 @@ export default function BookingForm({ onSubmit, onCancel, initialResourceId = ''
   )
 
   const bookableResources = useMemo(() => {
-    const allowedStatuses = new Set(['ACTIVE'])
+    const allowedStatuses = new Set(['ACTIVE', 'AVAILABLE'])
     const search = resourceQuery.trim().toLowerCase()
 
     return resources

@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 
 function statusBadge(status) {
   const map = {
-    AVAILABLE:'badge-green', APPROVED:'badge-green', RESOLVED:'badge-green', CLOSED:'badge-green',
+    AVAILABLE:'badge-green', ACTIVE:'badge-green', APPROVED:'badge-green', RESOLVED:'badge-green', CLOSED:'badge-green',
     PENDING:'badge-yellow',  OPEN:'badge-yellow',    IN_PROGRESS:'badge-blue',
     CANCELLED:'badge-gray',  REJECTED:'badge-red',   MAINTENANCE:'badge-orange',
   }
@@ -41,7 +41,7 @@ export default function Dashboard() {
 
   if (loading) return <div className="loading-container"><div className="spinner" /></div>
 
-  const availableCount = (resources||[]).filter(r => r.status==='AVAILABLE').length
+  const availableCount = (resources||[]).filter(r => r.status==='ACTIVE' || r.status==='AVAILABLE').length
   const pendingCount   = (bookings ||[]).filter(b => b.status==='PENDING').length
   const openTickets    = (tickets  ||[]).filter(t => t.status==='OPEN'||t.status==='IN_PROGRESS').length
 

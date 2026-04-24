@@ -11,6 +11,13 @@ import BookingsPage from './pages/BookingsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import LoginPage from './pages/LoginPage'
 
+function RoleRoute({ allowedRoles, children }) {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (!allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />
+  return children
+}
+
 function AppLayout() {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
@@ -20,9 +27,24 @@ function AppLayout() {
       <Navbar />
       <main className="main-content">
         <Routes>
+          <Route path="/dashboard"     element={<Dashboard />} />
           <Route path="/resources"     element={<ResourcesPage />} />
-          <Route path="/tickets"       element={<TicketsPage />} />
-          <Route path="/bookings"      element={<BookingsPage />} />
+          <Route
+            path="/tickets"
+            element={(
+              <RoleRoute allowedRoles={['ADMIN', 'STAFF', 'TECHNICIAN', 'STUDENT']}>
+                <TicketsPage />
+              </RoleRoute>
+            )}
+          />
+          <Route
+            path="/bookings"
+            element={(
+              <RoleRoute allowedRoles={['ADMIN', 'STAFF', 'STUDENT']}>
+                <BookingsPage />
+              </RoleRoute>
+            )}
+          />
           
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="*"              element={<Navigate to="/dashboard" replace />} /> 

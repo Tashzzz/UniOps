@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,6 +50,7 @@ public class ResourceController {
     }
 
     @GetMapping("/analytics/usage")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<ResourceUsageAnalyticsResponse> getUsageAnalytics(
             @RequestParam(defaultValue = "30") int days) {
         return ResponseEntity.ok(resourceService.getUsageAnalytics(days));
@@ -60,11 +62,13 @@ public class ResourceController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> createResource(@Valid @RequestBody Resource resource) {
         return ResponseEntity.status(201).body(resourceService.createResource(resource));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> updateResource(
             @PathVariable Long id,
             @Valid @RequestBody Resource resource) {
@@ -72,6 +76,7 @@ public class ResourceController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> updateStatus(
             @PathVariable Long id,
             @RequestParam ResourceStatus status) {
@@ -79,6 +84,7 @@ public class ResourceController {
     }
 
     @PostMapping("/{id}/image")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> uploadImage(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file) throws IOException {
@@ -89,6 +95,7 @@ public class ResourceController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
         resourceService.deleteResource(id);
         return ResponseEntity.noContent().build();

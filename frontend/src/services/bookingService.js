@@ -6,7 +6,7 @@ const bookingService = {
   getByUser: (userId) => api.get(`/bookings/user/${userId}`),
   getByResource: (resourceId) => api.get(`/bookings/resource/${resourceId}`),
   create: (data) => api.post('/bookings', data),
-  updateStatus: (id, status) => api.patch(`/bookings/${id}/status`, null, { params: { status } }),
+  updateStatus: (id, status, reason) => api.patch(`/bookings/${id}/status`, null, { params: { status, reason } }),
   delete: (id) => api.delete(`/bookings/${id}`),
 }
 
