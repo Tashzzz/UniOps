@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { resolveMediaUrl } from '../services/api'
 
 const TYPES = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'SPORTS', 'STUDY_ROOM', 'AUDITORIUM', 'OTHER']
 const STATUSES = ['ACTIVE', 'OUT_OF_SERVICE']
@@ -16,7 +17,7 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
 
   const imagePreview = imageFile
     ? URL.createObjectURL(imageFile)
-    : form.imageUrl || ''
+    : resolveMediaUrl(form.imageUrl)
 
   const handleSubmit = (e) => {
     e.preventDefault()

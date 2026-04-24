@@ -1,5 +1,6 @@
 import React from 'react'
 import { Building2, MapPin, Users, Pencil, Trash2 } from 'lucide-react'
+import { resolveMediaUrl } from '../services/api'
 
 const statusBadge = {
   ACTIVE:      'badge-green',
@@ -27,7 +28,7 @@ export default function ResourceList({ resources, onEdit, onDelete, canManage })
         <div className="resource-card" key={r.id}>
           <div className="resource-card-img">
             {r.imageUrl ? (
-              <img src={r.imageUrl} alt={r.name} className="resource-card-img-photo" />
+              <img src={resolveMediaUrl(r.imageUrl)} alt={r.name} className="resource-card-img-photo" />
             ) : (
               <Building2 size={40} />
             )}
