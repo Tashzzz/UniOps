@@ -1,5 +1,5 @@
 import React from 'react'
-import { Building2, MapPin, Users, Pencil, Trash2 } from 'lucide-react'
+import { Building2, MapPin, Users, Pencil, Trash2, Clock3, CircleDot } from 'lucide-react'
 import { resolveMediaUrl } from '../services/api'
 
 const statusBadge = {
@@ -47,6 +47,41 @@ const isResourceOpenNow = (resource) => {
 
 const formatStatus = (status) => (status === 'AVAILABLE' ? 'ACTIVE' : status)
 
+const toLabel = (value = '') => value.replace(/_/g, ' ')
+
+const getAvailabilityState = (resource) => {
+  if (resource.status === 'OUT_OF_SERVICE') {
+    return {
+      label: 'Out of Service',
+      tone: 'out',
+      reason: 'Temporarily unavailable for booking',
+    }
+  }
+  if (resource.status === 'MAINTENANCE') {
+    return {
+      label: 'Maintenance',
+      tone: 'maint',
+      reason: 'Under maintenance work',
+    }
+  }
+  if (isResourceOpenNow(resource)) {
+    return {
+      label: 'Open Now',
+      tone: 'open',
+      reason: resource.availableFrom && resource.availableTo
+        ? `Open until ${String(resource.availableTo).slice(0, 5)}`
+        : 'Currently accepting bookings',
+    }
+  }
+  return {
+    label: 'Currently Closed',
+    tone: 'closed',
+    reason: resource.availableFrom && resource.availableTo
+      ? `Opens ${String(resource.availableFrom).slice(0, 5)} on ${toLabel(resource.availableDays || 'ALL_DAYS')}`
+      : 'Outside availability window',
+  }
+}
+
 export default function ResourceList({ resources, onEdit, onDelete, onBook, canManage, canBook }) {
   if (!resources.length) {
     return (
@@ -61,7 +96,12 @@ export default function ResourceList({ resources, onEdit, onDelete, onBook, canM
   return (
     <div className="resource-grid">
       {resources.map(r => (
-        <div className="resource-card" key={r.id}>
+        <div className={`resource-card resource-card-${getAvailabilityState(r).tone}`} key={r.id}>
+          <div className="resource-card-strip">
+            <span className={`resource-availability-pill resource-availability-pill-${getAvailabilityState(r).tone}`}>
+              <CircleDot size={11} /> {getAvailabilityState(r).label}
+            </span>
+          </div>
           <div className="resource-card-img">
             {r.imageUrl ? (
               <img src={resolveMediaUrl(r.imageUrl)} alt={r.name} className="resource-card-img-photo" />
@@ -71,15 +111,20 @@ export default function ResourceList({ resources, onEdit, onDelete, onBook, canM
           </div>
           <div className="resource-card-body">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-              <div className="resource-card-title">{r.name}</div>
+              <div>
+                <div className="resource-card-title">{r.name}</div>
+                <div className="resource-card-subtitle">{toLabel(r.type)}</div>
+              </div>
               <span className={`badge ${statusBadge[formatStatus(r.status)]||'badge-gray'}`}>{formatStatus(r.status)}</span>
             </div>
             <div className="resource-card-meta">
               <div><MapPin size={11}/> {r.location}</div>
               <div><Users size={11}/> Capacity: {r.capacity}</div>
-              <div>{isResourceOpenNow(r) ? 'Currently Open' : 'Currently Closed'}</div>
+              <div className={`resource-open-state resource-open-state-${getAvailabilityState(r).tone}`}>
+                <Clock3 size={11} /> {getAvailabilityState(r).reason}
+              </div>
               {(r.availableFrom && r.availableTo) && (
-                <div>{r.availableDays ? r.availableDays.replace(/_/g, ' ') : 'All Days'} {r.availableFrom.slice(0,5)} - {r.availableTo.slice(0,5)}</div>
+                <div>{toLabel(r.availableDays || 'ALL_DAYS')} {r.availableFrom.slice(0,5)} - {r.availableTo.slice(0,5)}</div>
               )}
             </div>
             {r.description && (

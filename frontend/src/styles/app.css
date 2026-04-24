@@ -444,11 +444,55 @@ tbody tr:hover td { background: #fafbff; }
   border-radius: var(--radius-lg); overflow: hidden;
   box-shadow: var(--shadow-sm);
   transition: box-shadow .2s, transform .2s, border-color .2s;
+  position: relative;
 }
 .resource-card:hover {
   box-shadow: var(--shadow);
   transform: translateY(-2px);
   border-color: var(--border-2);
+}
+.resource-card-open { border-color: #c7f0df; }
+.resource-card-closed { border-color: #ffe2b8; background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%); }
+.resource-card-out { border-color: #fecaca; background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%); }
+.resource-card-maint { border-color: #fed7aa; background: linear-gradient(180deg, #fffaf4 0%, #ffffff 100%); }
+.resource-card-strip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3;
+}
+.resource-availability-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  border: 1px solid transparent;
+}
+.resource-availability-pill-open {
+  background: rgba(209, 250, 229, 0.9);
+  color: #047857;
+  border-color: #6ee7b7;
+}
+.resource-availability-pill-closed {
+  background: rgba(254, 243, 199, 0.95);
+  color: #b45309;
+  border-color: #fbbf24;
+}
+.resource-availability-pill-out {
+  background: rgba(254, 226, 226, 0.95);
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+.resource-availability-pill-maint {
+  background: rgba(255, 237, 213, 0.95);
+  color: #c2410c;
+  border-color: #fdba74;
 }
 .resource-card-img {
   height: 120px;
@@ -464,8 +508,43 @@ tbody tr:hover td { background: #fafbff; }
 }
 .resource-card-body { padding: 16px; }
 .resource-card-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text); }
+.resource-card-subtitle {
+  margin-top: -3px;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
 .resource-card-meta { font-size: 12px; color: var(--text-3); }
 .resource-card-meta div { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.resource-open-state {
+  margin-top: 2px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+}
+.resource-open-state-open {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+.resource-open-state-closed {
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+.resource-open-state-out {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.resource-open-state-maint {
+  color: #c2410c;
+  background: #fff7ed;
+  border-color: #fdba74;
+}
 .resource-card-footer {
   display: flex; align-items: center;
   justify-content: space-between; margin-top: 12px;
