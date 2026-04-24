@@ -1,6 +1,10 @@
 package com.example.uniops.model;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Locale;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,6 +18,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,6 +41,7 @@ public class Resource {
     private String name;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "Resource type is required")
     @Column(nullable = false)
     private ResourceType type;
 
@@ -48,9 +54,16 @@ public class Resource {
     private int capacity;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "Resource status is required")
     @Column(nullable = false)
     @Builder.Default
-    private ResourceStatus status = ResourceStatus.AVAILABLE;
+    private ResourceStatus status = ResourceStatus.ACTIVE;
+
+    @Column(name = "available_from")
+    private LocalTime availableFrom;
+
+    @Column(name = "available_to")
+    private LocalTime availableTo;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -76,10 +89,35 @@ public class Resource {
     }
 
     public enum ResourceType {
-        LECTURE_HALL, LAB, MEETING_ROOM, SPORTS, STUDY_ROOM, AUDITORIUM, OTHER
+        LECTURE_HALL, LAB, MEETING_ROOM, SPORTS, STUDY_ROOM, AUDITORIUM, OTHER;
+
+        @JsonCreator
+        public static ResourceType fromValue(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            String normalized = value.trim()
+                    .toUpperCase(Locale.ROOT)
+                    .replace('-', '_')
+                    .replace(' ', '_');
+            return ResourceType.valueOf(normalized);
+        }
     }
 
     public enum ResourceStatus {
-        AVAILABLE, OCCUPIED, MAINTENANCE, RETIRED
+        ACTIVE, OUT_OF_SERVICE,
+        AVAILABLE, OCCUPIED, MAINTENANCE, RETIRED;
+
+        @JsonCreator
+        public static ResourceStatus fromValue(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            String normalized = value.trim()
+                    .toUpperCase(Locale.ROOT)
+                    .replace('-', '_')
+                    .replace(' ', '_');
+            return ResourceStatus.valueOf(normalized);
+        }
     }
 }

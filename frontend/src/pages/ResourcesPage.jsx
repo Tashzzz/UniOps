@@ -1,53 +1,93 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import resourceService from '../services/resourceService'
 import ResourceList from '../components/ResourceList'
 import ResourceForm from '../components/ResourceForm'
+import ResourceAnalyticsPanel from '../components/ResourceAnalyticsPanel'
 
 const TYPES = ['LECTURE_HALL','LAB','MEETING_ROOM','SPORTS','STUDY_ROOM','AUDITORIUM','OTHER']
+const STATUSES = ['ACTIVE', 'OUT_OF_SERVICE']
 
 export default function ResourcesPage() {
   const { user } = useAuth()
   const [resources,  setResources]  = useState([])
-  const [filtered,   setFiltered]   = useState([])
   const [loading,    setLoading]    = useState(true)
   const [search,     setSearch]     = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [locationFilter, setLocationFilter] = useState('')
+  const [minCapacity, setMinCapacity] = useState('')
+  const [analyticsDays, setAnalyticsDays] = useState(30)
+  const [analytics, setAnalytics] = useState(null)
   const [showModal,  setShowModal]  = useState(false)
   const [editing,    setEditing]    = useState(null)
 
   const canManage = user?.role === 'ADMIN' || user?.role === 'STAFF'
+  const isAdmin = user?.role === 'ADMIN'
 
-  const load = () => {
+  const getFilterParams = useCallback(() => ({
+    search: search || undefined,
+    type: typeFilter || undefined,
+    status: statusFilter || undefined,
+    location: locationFilter || undefined,
+    minCapacity: minCapacity ? Number(minCapacity) : undefined,
+  }), [search, typeFilter, statusFilter, locationFilter, minCapacity])
+
+  const load = useCallback((filters = {}) => {
     setLoading(true)
-    resourceService.getAll()
-      .then(r => { const d = Array.isArray(r.data) ? r.data : []; setResources(d); setFiltered(d) })
+    resourceService.getAll(filters)
+      .then(r => {
+        const d = Array.isArray(r.data) ? r.data : []
+        setResources(d)
+      })
       .catch(() => toast.error('Failed to load resources'))
       .finally(() => setLoading(false))
-  }
+  }, [])
 
-  useEffect(load, [])
+  const loadAnalytics = useCallback((days = analyticsDays) => {
+    if (!isAdmin) return
+    resourceService.getUsageAnalytics(days)
+      .then(r => setAnalytics(r.data))
+      .catch(() => toast.error('Failed to load resource analytics'))
+  }, [analyticsDays, isAdmin])
 
   useEffect(() => {
-    let list = resources
-    if (search)     list = list.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
-    if (typeFilter) list = list.filter(r => r.type === typeFilter)
-    setFiltered(list)
-  }, [search, typeFilter, resources])
+    const timeoutId = setTimeout(() => {
+      load(getFilterParams())
+    }, 250)
 
-  const handleSubmit = async (data) => {
+    return () => clearTimeout(timeoutId)
+  }, [getFilterParams, load])
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadAnalytics(analyticsDays)
+    }
+  }, [isAdmin, analyticsDays, loadAnalytics])
+
+  const handleSubmit = async (data, imageFile) => {
     try {
-      if (editing) { await resourceService.update(editing.id, data); toast.success('Resource updated') }
-      else         { await resourceService.create(data);             toast.success('Resource created') }
-      setShowModal(false); setEditing(null); load()
+      let saved
+      if (editing) {
+        saved = (await resourceService.update(editing.id, data)).data
+      } else {
+        saved = (await resourceService.create(data)).data
+      }
+
+      if (imageFile && saved?.id) {
+        await resourceService.uploadImage(saved.id, imageFile)
+      }
+
+      toast.success(editing ? 'Resource updated' : 'Resource created')
+      setShowModal(false); setEditing(null); load(getFilterParams()); loadAnalytics()
     } catch (err) { toast.error(err.message) }
   }
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this resource?')) return
-    try { await resourceService.delete(id); toast.success('Deleted'); load() }
+    try { await resourceService.delete(id); toast.success('Deleted'); load(getFilterParams()); loadAnalytics() }
     catch (err) { toast.error(err.message) }
   }
 
@@ -74,14 +114,50 @@ export default function ResourcesPage() {
           <option value="">All Types</option>
           {TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}
         </select>
+        <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="">All Statuses</option>
+          {STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+        </select>
+        <input
+          className="filter-select"
+          placeholder="Location"
+          value={locationFilter}
+          onChange={e => setLocationFilter(e.target.value)}
+        />
+        <input
+          className="filter-select"
+          type="number"
+          min="1"
+          placeholder="Min Capacity"
+          value={minCapacity}
+          onChange={e => setMinCapacity(e.target.value)}
+          style={{ width: 130 }}
+        />
         <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text-3)' }}>
-          {filtered.length} resource{filtered.length !== 1 ? 's' : ''}
+          {resources.length} resource{resources.length !== 1 ? 's' : ''}
         </span>
       </div>
 
+      {isAdmin && (
+        <div className="toolbar" style={{ marginBottom: 12 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Analytics Window:</span>
+          <select
+            className="filter-select"
+            value={analyticsDays}
+            onChange={e => setAnalyticsDays(Number(e.target.value))}
+          >
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
+        </div>
+      )}
+
+      {isAdmin && <ResourceAnalyticsPanel analytics={analytics} days={analyticsDays} />}
+
       {loading
         ? <div className="loading-container"><div className="spinner"/></div>
-        : <ResourceList resources={filtered} onEdit={r => { setEditing(r); setShowModal(true) }} onDelete={handleDelete} canManage={canManage}/>
+        : <ResourceList resources={resources} onEdit={r => { setEditing(r); setShowModal(true) }} onDelete={handleDelete} canManage={canManage}/>
       }
 
       {showModal && (
