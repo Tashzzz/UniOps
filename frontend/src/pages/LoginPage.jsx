@@ -55,14 +55,8 @@ export default function LoginPage() {
   const signInWithGoogle = () => {
     setLoading(true)
     setError('')
-    api.get('/auth/google')
-      .then((res) => {
-        window.location.href = res.data?.url || '/oauth2/authorization/google'
-      })
-      .catch((err) => {
-        setError(err.message || 'Google sign-in is not configured on the backend.')
-        setLoading(false)
-      })
+    // Navigate directly to the OAuth2 authorization endpoint (proxied to backend)
+    window.location.href = '/oauth2/authorization/google'
   }
 
   return (
