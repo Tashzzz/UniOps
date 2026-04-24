@@ -33,6 +33,7 @@ INSERT INTO resources (
     (11, 'F1401', 'LECTURE_HALL', 'New Building', 200, 'ACTIVE', '08:00:00', '16:30:00', 'Wet lab with safety stations', '/uploads/resources/7ae57b5a-108a-4b34-ba76-b7591ee487b0.jpg', '2026-04-24 10:07:24.656461', '2026-04-24 12:38:46.898599'),
     (12, 'Meeting Room-Main', 'MEETING_ROOM', 'Main Building', 10, 'ACTIVE', '09:00:00', '18:00:00', 'staff', '/uploads/resources/2741ceb8-dd8c-48e2-80bd-9dd31b000d58.jpg', '2026-04-24 12:29:45.984992', '2026-04-24 12:40:22.699765');
 
+
 ALTER TABLE resources AUTO_INCREMENT = 13;
 
 SET FOREIGN_KEY_CHECKS = 1;
