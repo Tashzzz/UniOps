@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
 import com.example.uniops.dto.ResourceUsageAnalyticsResponse;
 import com.example.uniops.model.Resource;
@@ -54,7 +56,7 @@ class ResourceServiceTest {
 
     @Test
     void getUsageAnalytics_limitsDaysAndReturnsSafeEmptyListsOnDataFailure() {
-        when(jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), any()))
+        when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<Object>>any(), any(Object[].class)))
                 .thenThrow(new DataAccessResourceFailureException("bookings table unavailable"));
 
         ResourceUsageAnalyticsResponse response = resourceService.getUsageAnalytics(999);
