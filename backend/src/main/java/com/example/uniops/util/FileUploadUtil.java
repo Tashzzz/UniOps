@@ -11,11 +11,31 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+
 @Component
 public class FileUploadUtil {
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
+
+    private Path resolveUploadRootPath() {
+        Path configuredPath = Paths.get(uploadDir);
+        if (configuredPath.isAbsolute()) {
+            return configuredPath.normalize();
+        }
+
+        Path cwdPath = configuredPath.toAbsolutePath().normalize();
+        if (Files.exists(cwdPath)) {
+            return cwdPath;
+        }
+
+        Path backendRelative = Paths.get("backend", uploadDir).toAbsolutePath().normalize();
+        if (Files.exists(backendRelative)) {
+            return backendRelative;
+        }
+
+        return cwdPath;
+    }
 
     /**
      * Save a multipart file under uploads/{subDir}/ and return the generated filename.
@@ -28,7 +48,7 @@ public class FileUploadUtil {
         }
         String fileName = UUID.randomUUID() + extension;
 
-        Path uploadPath = Paths.get(uploadDir, subDir);
+        Path uploadPath = resolveUploadRootPath().resolve(subDir);
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
@@ -43,7 +63,7 @@ public class FileUploadUtil {
      * Delete a previously saved file.
      */
     public void deleteFile(String subDir, String fileName) {
-        Path filePath = Paths.get(uploadDir, subDir, fileName);
+        Path filePath = resolveUploadRootPath().resolve(subDir).resolve(fileName);
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException ignored) {
