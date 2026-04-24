@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { Plus, CalendarCheck } from 'lucide-react'
+import { Plus, CalendarCheck, QrCode } from 'lucide-react'
 import { format } from 'date-fns'
+import { QRCodeSVG } from 'qrcode.react'
 import { useAuth } from '../context/AuthContext'
 import bookingService from '../services/bookingService'
 import BookingForm from '../components/BookingForm'
@@ -20,6 +21,8 @@ export default function BookingsPage() {
   const [loading,      setLoading]      = useState(true)
   const [showModal,    setShowModal]    = useState(false)
   const [filterStatus, setFilterStatus] = useState('')
+  const [newBookingQr, setNewBookingQr] = useState(null)
+  const [viewQrBooking, setViewQrBooking] = useState(null)
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
 
@@ -45,9 +48,10 @@ export default function BookingsPage() {
 
   const handleCreate = async (data) => {
     try {
-      await bookingService.create(data)
+      const res = await bookingService.create(data)
       toast.success('Booking submitted!')
       setShowModal(false)
+      setNewBookingQr(res.data)
       load()
     } catch (err) {
       toast.error(err.message || 'Failed to create booking')
@@ -143,20 +147,25 @@ export default function BookingsPage() {
                         </span>
                       </td>
                       <td>
-                        {/* Admin actions */}
-                        {isAdmin && b.status === 'PENDING' && (
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button className="btn btn-sm btn-success" onClick={() => handleStatus(b.id, 'APPROVED')}>Approve</button>
-                            <button className="btn btn-sm btn-danger"  onClick={() => handleStatus(b.id, 'REJECTED')}>Reject</button>
-                          </div>
-                        )}
-                        {isAdmin && b.status === 'APPROVED' && (
-                          <button className="btn btn-sm btn-secondary" onClick={() => handleStatus(b.id, 'CANCELLED')}>Cancel</button>
-                        )}
-                        {/* Student can cancel their own pending booking */}
-                        {!isAdmin && b.status === 'PENDING' && (
-                          <button className="btn btn-sm btn-danger" onClick={() => handleCancel(b.id)}>Cancel</button>
-                        )}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <button className="btn btn-sm btn-secondary" onClick={() => setViewQrBooking(b)} title="View QR">
+                            <QrCode size={14} />
+                          </button>
+                          {/* Admin actions */}
+                          {isAdmin && b.status === 'PENDING' && (
+                            <>
+                              <button className="btn btn-sm btn-success" onClick={() => handleStatus(b.id, 'APPROVED')}>Approve</button>
+                              <button className="btn btn-sm btn-danger"  onClick={() => handleStatus(b.id, 'REJECTED')}>Reject</button>
+                            </>
+                          )}
+                          {isAdmin && b.status === 'APPROVED' && (
+                            <button className="btn btn-sm btn-secondary" onClick={() => handleStatus(b.id, 'CANCELLED')}>Cancel</button>
+                          )}
+                          {/* Student can cancel their own pending booking */}
+                          {!isAdmin && b.status === 'PENDING' && (
+                            <button className="btn btn-sm btn-danger" onClick={() => handleCancel(b.id)}>Cancel</button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -172,6 +181,49 @@ export default function BookingsPage() {
           <div className="modal">
             <h2>New Booking</h2>
             <BookingForm onSubmit={handleCreate} onCancel={() => setShowModal(false)} />
+          </div>
+        </div>
+      )}
+
+      {newBookingQr && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setNewBookingQr(null)}>
+          <div className="modal" style={{ textAlign: 'center' }}>
+            <h2>Booking Successful</h2>
+            
+            <div style={{ textAlign: 'left', background: 'var(--surface-2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', display: 'inline-block', minWidth: '280px', marginBottom: '1.5rem' }}>
+              <div style={{ marginBottom: '8px' }}><strong>Title:</strong> {newBookingQr.title}</div>
+              <div style={{ marginBottom: '8px' }}><strong>Resource:</strong> {newBookingQr.resource?.name}</div>
+              <div><strong>Time:</strong> {format(new Date(newBookingQr.startTime), 'MMM d, HH:mm')} - {format(new Date(newBookingQr.endTime), 'HH:mm')}</div>
+            </div>
+
+            <p style={{ marginBottom: '1rem', color: '#64748b' }}>Your booking ID is #{newBookingQr.id}. Please keep this QR code for verification.</p>
+            <div style={{ background: 'white', padding: '16px', display: 'block', margin: '0 auto 1.5rem', borderRadius: '8px', width: '200px' }}>
+              <QRCodeSVG value={`Booking ID: #${newBookingQr.id}\nTitle: ${newBookingQr.title}\nResource: ${newBookingQr.resource?.name || 'N/A'}\nTime: ${format(new Date(newBookingQr.startTime), 'MMM d, yyyy HH:mm')} - ${format(new Date(newBookingQr.endTime), 'HH:mm')}`} size={200} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+            </div>
+            <div>
+              <button className="btn btn-primary" onClick={() => setNewBookingQr(null)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewQrBooking && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setViewQrBooking(null)}>
+          <div className="modal" style={{ textAlign: 'center' }}>
+            <h2>Booking #{viewQrBooking.id}</h2>
+
+            <div style={{ textAlign: 'left', background: 'var(--surface-2)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', display: 'inline-block', minWidth: '280px', marginBottom: '1.5rem' }}>
+              <div style={{ marginBottom: '8px' }}><strong>Title:</strong> {viewQrBooking.title}</div>
+              <div style={{ marginBottom: '8px' }}><strong>Resource:</strong> {viewQrBooking.resource?.name}</div>
+              <div><strong>Time:</strong> {format(new Date(viewQrBooking.startTime), 'MMM d, HH:mm')} - {format(new Date(viewQrBooking.endTime), 'HH:mm')}</div>
+            </div>
+            
+            <div style={{ background: 'white', padding: '16px', borderRadius: '8px', marginBottom: '1.5rem', width: '200px', display: 'block', margin: '0 auto 1.5rem' }}>
+              <QRCodeSVG value={`Booking ID: #${viewQrBooking.id}\nTitle: ${viewQrBooking.title}\nResource: ${viewQrBooking.resource?.name || 'N/A'}\nTime: ${format(new Date(viewQrBooking.startTime), 'MMM d, yyyy HH:mm')} - ${format(new Date(viewQrBooking.endTime), 'HH:mm')}`} size={200} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+            </div>
+            <div>
+              <button className="btn btn-secondary" onClick={() => setViewQrBooking(null)}>Close</button>
+            </div>
           </div>
         </div>
       )}
