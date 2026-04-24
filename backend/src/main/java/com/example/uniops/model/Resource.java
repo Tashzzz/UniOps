@@ -2,6 +2,9 @@ package com.example.uniops.model;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Locale;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -86,11 +89,35 @@ public class Resource {
     }
 
     public enum ResourceType {
-        LECTURE_HALL, LAB, MEETING_ROOM, SPORTS, STUDY_ROOM, AUDITORIUM, OTHER
+        LECTURE_HALL, LAB, MEETING_ROOM, SPORTS, STUDY_ROOM, AUDITORIUM, OTHER;
+
+        @JsonCreator
+        public static ResourceType fromValue(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            String normalized = value.trim()
+                    .toUpperCase(Locale.ROOT)
+                    .replace('-', '_')
+                    .replace(' ', '_');
+            return ResourceType.valueOf(normalized);
+        }
     }
 
     public enum ResourceStatus {
         ACTIVE, OUT_OF_SERVICE,
-        AVAILABLE, OCCUPIED, MAINTENANCE, RETIRED
+        AVAILABLE, OCCUPIED, MAINTENANCE, RETIRED;
+
+        @JsonCreator
+        public static ResourceStatus fromValue(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            String normalized = value.trim()
+                    .toUpperCase(Locale.ROOT)
+                    .replace('-', '_')
+                    .replace(' ', '_');
+            return ResourceStatus.valueOf(normalized);
+        }
     }
 }
