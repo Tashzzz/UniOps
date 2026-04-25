@@ -126,4 +126,51 @@ class ResourceControllerTest {
 
         verify(resourceService).getUsageAnalytics(30);
     }
+
+    @Test
+    void getAvailableResources_forwardsWindowAndOptionalFilters() throws Exception {
+        Resource resource = Resource.builder()
+                .id(2L)
+                .name("Meeting Room 2")
+                .type(ResourceType.MEETING_ROOM)
+                .location("Block C")
+                .capacity(15)
+                .status(ResourceStatus.ACTIVE)
+                .build();
+
+        LocalDateTime startTime = LocalDateTime.of(2026, 4, 25, 9, 0);
+        LocalDateTime endTime = LocalDateTime.of(2026, 4, 25, 11, 0);
+
+        when(resourceService.getAvailableResources(startTime, endTime, ResourceType.MEETING_ROOM, 10))
+                .thenReturn(List.of(resource));
+
+        mockMvc.perform(get("/api/resources/available")
+                        .param("startTime", "2026-04-25T09:00:00")
+                        .param("endTime", "2026-04-25T11:00:00")
+                        .param("type", "MEETING_ROOM")
+                        .param("minCapacity", "10")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Meeting Room 2"))
+                .andExpect(jsonPath("$[0].capacity").value(15));
+
+        verify(resourceService).getAvailableResources(startTime, endTime, ResourceType.MEETING_ROOM, 10);
+    }
+
+    @Test
+    void getAvailableResources_acceptsStartEndAliases() throws Exception {
+        LocalDateTime start = LocalDateTime.of(2026, 4, 25, 9, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 4, 25, 10, 0);
+
+        when(resourceService.getAvailableResources(start, end, null, null))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/resources/available")
+                        .param("start", "2026-04-25T09:00")
+                        .param("end", "2026-04-25T10:00")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(resourceService).getAvailableResources(start, end, null, null);
+    }
 }
