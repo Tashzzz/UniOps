@@ -1,6 +1,9 @@
 package com.example.uniops.controller;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -47,6 +50,19 @@ public class ResourceController {
             @RequestParam(required = false) String search) {
 
         return ResponseEntity.ok(resourceService.getResources(status, type, location, minCapacity, maxCapacity, search));
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<List<Resource>> getAvailableResources(
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(required = false) ResourceType type,
+            @RequestParam(required = false) Integer minCapacity) {
+        LocalDateTime resolvedStartTime = parseDateTime(firstNonBlank(startTime, start), "startTime/start");
+        LocalDateTime resolvedEndTime = parseDateTime(firstNonBlank(endTime, end), "endTime/end");
+        return ResponseEntity.ok(resourceService.getAvailableResources(resolvedStartTime, resolvedEndTime, type, minCapacity));
     }
 
     @GetMapping("/analytics/usage")
@@ -99,5 +115,31 @@ public class ResourceController {
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
         resourceService.deleteResource(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private String firstNonBlank(String preferred, String fallback) {
+        if (preferred != null && !preferred.isBlank()) {
+            return preferred;
+        }
+        return fallback;
+    }
+
+    private LocalDateTime parseDateTime(String value, String paramName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(paramName + " is required and must be a valid datetime.");
+        }
+        List<DateTimeFormatter> formats = List.of(
+                DateTimeFormatter.ISO_DATE_TIME,
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        for (DateTimeFormatter formatter : formats) {
+            try {
+                return LocalDateTime.parse(value.trim(), formatter);
+            } catch (DateTimeParseException ignored) {
+                // Try next format.
+            }
+        }
+        throw new IllegalArgumentException(paramName + " must be in ISO format, e.g. 2026-04-25T09:00:00.");
     }
 }

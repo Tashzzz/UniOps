@@ -25,6 +25,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
 
+    @Query("SELECT DISTINCT b.resource.id FROM Booking b " +
+           "WHERE b.status NOT IN ('CANCELLED', 'REJECTED') " +
+           "AND b.startTime < :endTime AND b.endTime > :startTime")
+    List<Long> findBookedResourceIdsInWindow(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime);
+
     List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<Booking> findAllByOrderByCreatedAtDesc();
 }
