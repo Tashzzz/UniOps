@@ -125,7 +125,9 @@ public class BookingService {
             currentUserService.requireAdminOrStaff(currentUser);
         }
 
-        if (status == BookingStatus.CANCELLED && !adminOrStaff && !booking.getUser().getId().equals(currentUser.getId())) {
+        if (status == BookingStatus.CANCELLED
+            && !adminOrStaff
+            && (currentUser == null || !booking.getUser().getId().equals(currentUser.getId()))) {
             throw new IllegalStateException("You can only cancel your own bookings.");
         }
 
