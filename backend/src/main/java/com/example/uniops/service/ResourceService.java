@@ -14,6 +14,7 @@ import com.example.uniops.exception.ResourceNotFoundException;
 import com.example.uniops.model.Resource;
 import com.example.uniops.model.Resource.ResourceStatus;
 import com.example.uniops.model.Resource.ResourceType;
+import com.example.uniops.repository.BookingRepository;
 import com.example.uniops.repository.ResourceRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class ResourceService {
 
     private final ResourceRepository resourceRepository;
+    private final BookingRepository bookingRepository;
     private final JdbcTemplate jdbcTemplate;
 
     public List<Resource> getAllResources() {
@@ -85,6 +87,35 @@ public class ResourceService {
 
     public List<Resource> getResourcesByType(ResourceType type) {
         return resourceRepository.findByType(type);
+    }
+
+    public List<Resource> getAvailableResources(LocalDateTime startTime, LocalDateTime endTime, ResourceType type,
+            Integer minCapacity) {
+        if (startTime == null || endTime == null) {
+            throw new IllegalArgumentException("startTime and endTime are required.");
+        }
+        if (!endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("endTime must be after startTime.");
+        }
+
+        Specification<Resource> spec = (root, query, cb) -> cb.or(
+                cb.equal(root.get("status"), ResourceStatus.ACTIVE),
+                cb.equal(root.get("status"), ResourceStatus.AVAILABLE));
+
+        if (type != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
+        }
+
+        if (minCapacity != null) {
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("capacity"), minCapacity));
+        }
+
+        List<Long> bookedResourceIds = bookingRepository.findBookedResourceIdsInWindow(startTime, endTime);
+        if (bookedResourceIds != null && !bookedResourceIds.isEmpty()) {
+            spec = spec.and((root, query, cb) -> cb.not(root.get("id").in(bookedResourceIds)));
+        }
+
+        return resourceRepository.findAll(spec);
     }
 
     public List<Resource> searchResources(String name) {
