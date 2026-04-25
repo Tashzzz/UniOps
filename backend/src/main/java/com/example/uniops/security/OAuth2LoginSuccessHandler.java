@@ -1,8 +1,12 @@
 package com.example.uniops.security;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -19,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+    private static final Logger log = LoggerFactory.getLogger(OAuth2LoginSuccessHandler.class);
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
@@ -36,6 +41,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         if (email != null && !email.isBlank()) {
             String normalizedEmail = email.trim().toLowerCase();
+            log.info("OAuth success for email={} subject={}", normalizedEmail, subject);
             userRepository.findByEmail(normalizedEmail).ifPresentOrElse(existing -> {
                 existing.setProvider("google");
                 existing.setProviderId(subject);
@@ -52,8 +58,18 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     .providerId(subject)
                     .avatarUrl(picture)
                     .build()));
+
+            String encodedEmail = URLEncoder.encode(normalizedEmail, StandardCharsets.UTF_8);
+            String encodedName = URLEncoder.encode(
+                    name != null && !name.isBlank() ? name : normalizedEmail,
+                    StandardCharsets.UTF_8);
+            log.info("Redirecting OAuth success to frontend with email param at {}", frontendUrl);
+            response.sendRedirect(frontendUrl + "/login?oauth=success&email=" + encodedEmail + "&name=" + encodedName);
+            return;
         }
 
-        response.sendRedirect(frontendUrl + "/login?oauth=success");
+        log.warn("OAuth success callback missing email claim. Redirecting with oauth error.");
+        response.sendRedirect(frontendUrl + "/login?oauth=error&reason="
+                + URLEncoder.encode("Google account email was not provided.", StandardCharsets.UTF_8));
     }
 }

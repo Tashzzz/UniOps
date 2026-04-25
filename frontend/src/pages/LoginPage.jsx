@@ -13,11 +13,16 @@ const DEMO_ACCOUNTS = [
 ]
 
 const ROLE_COLOR = { ADMIN: '#4f6ef7', STAFF: '#8b5cf6', STUDENT: '#059669' }
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
 
 export default function LoginPage() {
-  const { login }  = useAuth()
+  const { user, login }  = useAuth()
   const navigate   = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const oauthStatus = searchParams.get('oauth')
+  const oauthEmail = searchParams.get('email')
+  const oauthName = searchParams.get('name')
+  const oauthReason = searchParams.get('reason')
   const [email,    setEmail]   = useState('')
   const [error,    setError]   = useState('')
   const [loading,  setLoading] = useState(false)
@@ -28,6 +33,12 @@ export default function LoginPage() {
       .then((res) => setGoogleEnabled(Boolean(res.data?.enabled)))
       .catch(() => setGoogleEnabled(false))
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, navigate])
 
   const resolveRole = (emailVal, roleVal) => {
     if (roleVal) return roleVal
@@ -53,19 +64,49 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
-    if (searchParams.get('oauth') !== 'success' || !googleEnabled) return
+    if (oauthStatus !== 'success') return
+    if (!oauthEmail) {
+      setLoading(true)
+      api.get('/auth/me')
+        .then((res) => {
+          login(res.data)
+        })
+        .catch(() => setError('Google sign-in failed: missing email from OAuth callback.'))
+        .finally(() => {
+          setLoading(false)
+        })
+      return
+    }
+
+    // Complete login immediately from callback params to avoid UI loops while API sync happens.
+    login({
+      email: oauthEmail.trim(),
+      name: oauthName || oauthEmail.split('@')[0],
+      role: 'STUDENT',
+      provider: 'google',
+    })
+    navigate('/dashboard')
+
     setLoading(true)
-    api.get('/auth/me')
+    api.post('/auth/login-or-register', {
+      email: oauthEmail.trim(),
+      name: oauthName || oauthEmail.split('@')[0],
+      role: 'STUDENT',
+    })
       .then((res) => {
         login(res.data)
-        navigate('/dashboard')
       })
-      .catch(() => setError('Google sign-in failed. Please try again.'))
+      .catch((err) => setError(err?.message || 'Google sign-in failed. Please try again.'))
       .finally(() => {
         setLoading(false)
-        setSearchParams({})
       })
-  }, [searchParams, setSearchParams, login, navigate, googleEnabled])
+  }, [oauthStatus, oauthEmail, oauthName, setSearchParams, login, navigate])
+
+  useEffect(() => {
+    if (oauthStatus !== 'error') return
+    setError(oauthReason ? `Google sign-in failed: ${oauthReason}` : 'Google sign-in failed. Please check your Google OAuth settings.')
+    setLoading(false)
+  }, [oauthStatus, oauthReason])
 
   const signInWithGoogle = () => {
     if (!googleEnabled) {
@@ -74,8 +115,8 @@ export default function LoginPage() {
     }
     setLoading(true)
     setError('')
-    // Navigate directly to the OAuth2 authorization endpoint (proxied to backend)
-    window.location.href = '/oauth2/authorization/google'
+    // Use backend absolute URL so browser navigation cannot be intercepted by frontend routing.
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`
   }
 
   return (
@@ -137,10 +178,15 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '.07em' }}>
+          <label
+            htmlFor="login-email"
+            style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '.07em' }}
+          >
             Email address
           </label>
           <input
+            id="login-email"
+            name="email"
             type="email"
             className="form-control"
             placeholder="you@campus.edu"
@@ -171,6 +217,7 @@ export default function LoginPage() {
         </button>
         {googleEnabled ? (
           <button
+            type="button"
             onClick={signInWithGoogle}
             disabled={loading}
             className="btn btn-secondary"
