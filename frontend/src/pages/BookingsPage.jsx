@@ -1,0 +1,283 @@
+import React, { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
+import { Plus, CalendarCheck } from 'lucide-react'
+import { format } from 'date-fns'
+import { useSearchParams } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import bookingService from '../services/bookingService'
+import BookingForm from '../components/BookingForm'
+import QRCode from 'qrcode'
+
+const STATUS_BADGE = {
+  PENDING:   'badge-yellow',
+  APPROVED:  'badge-green',
+  CANCELLED: 'badge-gray',
+  REJECTED:  'badge-red',
+  COMPLETED: 'badge-blue',
+}
+
+export default function BookingsPage() {
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [bookings,     setBookings]     = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [showModal,    setShowModal]    = useState(false)
+  const [showQrModal,  setShowQrModal]  = useState(false)
+  const [qrBooking,    setQrBooking]    = useState(null)
+  const [qrImage,      setQrImage]      = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
+  const canCreateBooking = !isAdmin
+  const preselectedResourceId = searchParams.get('resourceId') || ''
+
+  useEffect(() => {
+    if (canCreateBooking && preselectedResourceId) {
+      setShowModal(true)
+    }
+  }, [canCreateBooking, preselectedResourceId])
+
+  const load = () => {
+    if (!user?.id) return
+    setLoading(true)
+    // Admins see all bookings; students only see their own
+    const call = isAdmin
+      ? bookingService.getAll()
+      : bookingService.getByUser(user.id)
+
+    call
+      .then(r => setBookings(Array.isArray(r.data) ? r.data : []))
+      .catch(err => {
+        console.error(err)
+        toast.error('Failed to load bookings')
+        setBookings([])
+      })
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [user])
+
+  useEffect(() => {
+    if (!showQrModal || !qrBooking) return
+    const payload = buildQrPayload(qrBooking)
+    QRCode.toDataURL(payload, { width: 280, margin: 1 })
+      .then((url) => setQrImage(url))
+      .catch(() => {
+        setQrImage('')
+        toast.error('Failed to generate booking QR')
+      })
+  }, [showQrModal, qrBooking])
+
+  const handleCreate = async (data) => {
+    try {
+      await bookingService.create(data)
+      toast.success('Booking submitted!')
+      setShowModal(false)
+      if (preselectedResourceId) {
+        setSearchParams({})
+      }
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to create booking')
+    }
+  }
+
+  const handleStatus = async (id, status) => {
+    try {
+      const reason = status === 'REJECTED' ? window.prompt('Enter rejection reason') : undefined
+      await bookingService.updateStatus(id, status, reason)
+      toast.success(`Booking ${status.toLowerCase()}`)
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to update status')
+    }
+  }
+
+  const handleCancel = async (id) => {
+    if (!window.confirm('Cancel this booking?')) return
+    try {
+      await bookingService.updateStatus(id, 'CANCELLED')
+      toast.success('Booking cancelled')
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to cancel booking')
+    }
+  }
+
+  const displayed = filterStatus
+    ? bookings.filter(b => b.status === filterStatus)
+    : bookings
+
+  const buildQrPayload = (booking) => {
+    const startLabel = format(new Date(booking.startTime), 'yyyy-MM-dd HH:mm')
+    const endLabel = format(new Date(booking.endTime), 'yyyy-MM-dd HH:mm')
+    return [
+      'UniOps Booking',
+      `Booking ID: ${booking.id}`,
+      `Title: ${booking.title}`,
+      `Resource: ${booking.resource?.name || '-'}`,
+      `Start: ${startLabel}`,
+      `End: ${endLabel}`,
+      `Status: ${booking.status}`,
+    ].join('\n')
+  }
+
+  const openQrModal = (booking) => {
+    if (booking.status !== 'APPROVED') {
+      toast('QR is available only for approved bookings.')
+      return
+    }
+    setQrBooking(booking)
+    setQrImage('')
+    setShowQrModal(true)
+  }
+
+  return (
+    <div>
+      <div className="page-header page-header-row">
+        <div>
+          <h1>Bookings</h1>
+          <p>{isAdmin ? 'Manage all campus resource bookings' : 'Your resource booking requests'}</p>
+        </div>
+        {canCreateBooking && (
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> New Booking
+          </button>
+        )}
+      </div>
+
+      <div className="toolbar">
+        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="">All Statuses</option>
+          {['PENDING', 'APPROVED', 'CANCELLED', 'REJECTED', 'COMPLETED'].map(s => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        <span style={{ marginLeft: 'auto', fontSize: 13, color: '#64748b' }}>
+          {displayed.length} booking{displayed.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="loading-container"><div className="spinner" /></div>
+      ) : (
+        <div className="card">
+          {displayed.length === 0 ? (
+            <div className="empty-state">
+              <CalendarCheck size={48} />
+              <h3>No bookings found</h3>
+              <p>Click "New Booking" to reserve a resource.</p>
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>Resource</th>
+                    {isAdmin && <th>Requested By</th>}
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayed.map(b => (
+                    <tr key={b.id}>
+                      <td style={{ color: '#94a3b8' }}>#{b.id}</td>
+                      <td style={{ fontWeight: 500 }}>{b.title}</td>
+                      <td>{b.resource?.name}</td>
+                      {isAdmin && <td>{b.user?.name}</td>}
+                      <td>{format(new Date(b.startTime), 'MMM d, HH:mm')}</td>
+                      <td>{format(new Date(b.endTime), 'MMM d, HH:mm')}</td>
+                      <td>
+                        <span className={`badge ${STATUS_BADGE[b.status] || 'badge-gray'}`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td>
+                        {/* Admin actions */}
+                        {isAdmin && b.status === 'PENDING' && (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button className="btn btn-sm btn-success" onClick={() => handleStatus(b.id, 'APPROVED')}>Approve</button>
+                            <button className="btn btn-sm btn-danger"  onClick={() => handleStatus(b.id, 'REJECTED')}>Reject</button>
+                          </div>
+                        )}
+                        {isAdmin && b.status === 'APPROVED' && (
+                          <button className="btn btn-sm btn-secondary" onClick={() => handleStatus(b.id, 'CANCELLED')}>Cancel</button>
+                        )}
+                        {/* Student can cancel their own pending booking */}
+                        {!isAdmin && b.status === 'PENDING' && (
+                          <button className="btn btn-sm btn-danger" onClick={() => handleCancel(b.id)}>Cancel</button>
+                        )}
+                        {b.status === 'APPROVED' && (
+                          <button className="btn btn-sm btn-secondary" onClick={() => openQrModal(b)}>
+                            View QR
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showModal && canCreateBooking && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+          <div className="modal">
+            <h2>New Booking</h2>
+            <BookingForm
+              initialResourceId={preselectedResourceId}
+              onSubmit={handleCreate}
+              onCancel={() => {
+                setShowModal(false)
+                if (preselectedResourceId) {
+                  setSearchParams({})
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {showQrModal && qrBooking && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setShowQrModal(false)}>
+          <div className="modal booking-qr-modal">
+            <h2>Booking QR Code</h2>
+            <p className="booking-qr-subtitle">
+              Scan this QR to view meaningful booking details on any phone scanner.
+            </p>
+
+            <div className="booking-qr-box">
+              {qrImage ? (
+                <img src={qrImage} alt="Booking QR code" className="booking-qr-image" />
+              ) : (
+                <div className="loading-container" style={{ padding: 20 }}><div className="spinner" /></div>
+              )}
+            </div>
+
+            <div className="booking-qr-details">
+              <div><strong>Title:</strong> {qrBooking.title}</div>
+              <div><strong>Resource:</strong> {qrBooking.resource?.name}</div>
+              <div><strong>Time:</strong> {format(new Date(qrBooking.startTime), 'MMM d, HH:mm')} - {format(new Date(qrBooking.endTime), 'HH:mm')}</div>
+            </div>
+
+            <details style={{ marginTop: 10 }}>
+              <summary style={{ cursor: 'pointer', color: 'var(--text-3)', fontSize: 12 }}>QR payload preview</summary>
+              <pre className="booking-qr-payload">{buildQrPayload(qrBooking)}</pre>
+            </details>
+
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowQrModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

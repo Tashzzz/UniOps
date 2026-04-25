@@ -8,11 +8,10 @@ const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH']
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED']
 const CATEGORIES = ['IT', 'FACILITIES', 'ACADEMIC', 'ADMIN', 'OTHER']
 const STAFF_OPTIONS = [
-  { email: 'admin@campus.edu', name: 'Admin Team', role: 'ADMIN' },
-  { email: 'bob@campus.edu', name: 'Bob Perera', role: 'TECHNICIAN' },
-  { email: 'tech@campus.edu', name: 'Tech Support', role: 'TECHNICIAN' },
+  { id: 1, name: 'Admin Team', role: 'ADMIN' },
+  { id: 2, name: 'Bob Perera', role: 'TECHNICIAN' },
+  { id: 3, name: 'Tech Support', role: 'TECHNICIAN' },
 ]
-const META_KEY = 'uniops_ticket_meta_v1'
 
 const initialForm = {
   category: '',
@@ -81,7 +80,7 @@ export default function TicketsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [viewingTicketId, setViewingTicketId] = useState(null)
   const [editingTicketId, setEditingTicketId] = useState(null)
-  const [ticketMeta, setTicketMeta] = useState({})
+  const [comments, setComments] = useState([])
   const [statusDraft, setStatusDraft] = useState('OPEN')
   const [assignDraft, setAssignDraft] = useState('')
   const [resolutionDraft, setResolutionDraft] = useState('')
@@ -89,30 +88,6 @@ export default function TicketsPage() {
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editingCommentText, setEditingCommentText] = useState('')
   const [nowMs, setNowMs] = useState(Date.now())
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(META_KEY)
-      setTicketMeta(raw ? JSON.parse(raw) : {})
-    } catch {
-      setTicketMeta({})
-    }
-  }, [])
-
-  const saveMeta = (nextMeta) => {
-    setTicketMeta(nextMeta)
-    localStorage.setItem(META_KEY, JSON.stringify(nextMeta))
-  }
-
-  const updateTicketMeta = (ticketId, patch) => {
-    const key = String(ticketId)
-    const existing = ticketMeta[key] || { assignedStaff: '', resolutionNotes: '', comments: [] }
-    const nextMeta = {
-      ...ticketMeta,
-      [key]: { ...existing, ...patch },
-    }
-    saveMeta(nextMeta)
-  }
 
   const loadTickets = useCallback(() => {
     setLoading(true)
@@ -144,14 +119,15 @@ export default function TicketsPage() {
     [allVisibleTickets, viewingTicketId],
   )
 
-  const viewingMeta = viewingTicket ? ticketMeta[String(viewingTicket.id)] || { comments: [] } : { comments: [] }
-
   useEffect(() => {
     if (!viewingTicket) return
     setStatusDraft(viewingTicket.status || 'OPEN')
-    setAssignDraft(viewingMeta.assignedStaff || '')
-    setResolutionDraft(viewingMeta.resolutionNotes || '')
-  }, [viewingTicketId, viewingTicket, viewingMeta.assignedStaff, viewingMeta.resolutionNotes])
+    setAssignDraft(viewingTicket.assignee?.id ? String(viewingTicket.assignee.id) : '')
+    setResolutionDraft(viewingTicket.resolutionNotes || '')
+    ticketService.getComments(viewingTicket.id)
+      .then((res) => setComments(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setComments([]))
+  }, [viewingTicketId, viewingTicket])
 
   useEffect(() => {
     if (!viewingTicket) return undefined
@@ -317,10 +293,10 @@ export default function TicketsPage() {
   const applyStatus = async (statusValue) => {
     if (!viewingTicket) return
     try {
-      const updated = await ticketService.update(viewingTicket.id, {
-        ...viewingTicket,
-        status: statusValue,
-      })
+      const reason = statusValue === 'REJECTED'
+        ? window.prompt('Enter rejection reason')
+        : undefined
+      const updated = await ticketService.updateStatus(viewingTicket.id, statusValue, reason)
       if (updated?.data) {
         setTickets((prev) => prev.map((ticket) => (ticket.id === updated.data.id ? updated.data : ticket)))
         setStatusDraft(statusValue)
@@ -333,50 +309,55 @@ export default function TicketsPage() {
 
   const saveAssignment = () => {
     if (!viewingTicket) return
-    updateTicketMeta(viewingTicket.id, { assignedStaff: assignDraft })
-    toast.success('Technician assigned')
+    ticketService.assign(viewingTicket.id, Number(assignDraft))
+      .then((res) => {
+        setTickets((prev) => prev.map((ticket) => (ticket.id === res.data.id ? res.data : ticket)))
+        toast.success('Technician assigned')
+      })
+      .catch(() => toast.error('Failed to assign technician'))
   }
 
   const saveResolution = () => {
     if (!viewingTicket) return
-    updateTicketMeta(viewingTicket.id, { resolutionNotes: resolutionDraft })
-    toast.success('Resolution notes saved')
+    ticketService.updateResolution(viewingTicket.id, resolutionDraft)
+      .then((res) => {
+        setTickets((prev) => prev.map((ticket) => (ticket.id === res.data.id ? res.data : ticket)))
+        toast.success('Resolution notes saved')
+      })
+      .catch(() => toast.error('Failed to save notes'))
   }
 
   const addComment = () => {
     if (!viewingTicket || !commentDraft.trim()) return
-    const newComment = {
-      id: Date.now(),
-      text: commentDraft.trim(),
-      authorEmail: user?.email || 'unknown@campus.edu',
-      role: role,
-      createdAt: new Date().toISOString(),
-    }
-    updateTicketMeta(viewingTicket.id, {
-      comments: [...(viewingMeta.comments || []), newComment],
-    })
-    setCommentDraft('')
+    ticketService.addComment(viewingTicket.id, commentDraft.trim())
+      .then((res) => {
+        setComments((prev) => [...prev, res.data])
+        setCommentDraft('')
+      })
+      .catch(() => toast.error('Failed to add comment'))
   }
 
   const beginEditComment = (comment) => {
     setEditingCommentId(comment.id)
-    setEditingCommentText(comment.text)
+    setEditingCommentText(comment.content)
   }
 
   const saveEditComment = () => {
     if (!viewingTicket || !editingCommentText.trim()) return
-    const nextComments = (viewingMeta.comments || []).map((comment) =>
-      comment.id === editingCommentId ? { ...comment, text: editingCommentText.trim() } : comment,
-    )
-    updateTicketMeta(viewingTicket.id, { comments: nextComments })
-    setEditingCommentId(null)
-    setEditingCommentText('')
+    ticketService.updateComment(editingCommentId, editingCommentText.trim())
+      .then((res) => {
+        setComments((prev) => prev.map((comment) => (comment.id === editingCommentId ? res.data : comment)))
+        setEditingCommentId(null)
+        setEditingCommentText('')
+      })
+      .catch(() => toast.error('Failed to update comment'))
   }
 
   const deleteComment = (commentId) => {
     if (!viewingTicket) return
-    const nextComments = (viewingMeta.comments || []).filter((comment) => comment.id !== commentId)
-    updateTicketMeta(viewingTicket.id, { comments: nextComments })
+    ticketService.deleteComment(commentId)
+      .then(() => setComments((prev) => prev.filter((comment) => comment.id !== commentId)))
+      .catch(() => toast.error('Failed to delete comment'))
   }
 
   const canTransition = (current, next) => {
@@ -482,14 +463,13 @@ export default function TicketsPage() {
               {allVisibleTickets.map((ticket) => {
                 const priority = getPriorityBadge(ticket.priority)
                 const status = getStatusBadge(ticket.status)
-                const meta = ticketMeta[String(ticket.id)] || {}
                 return (
                   <tr key={ticket.id}>
                     <td>#{ticket.id}</td>
                     <td>{ticket.category || 'General'}</td>
                     <td><span className={`badge ${priority.cls}`}>{priority.label}</span></td>
                     <td><span className={`badge ${status.cls}`}>{status.label}</span></td>
-                    {!isUser && <td>{meta.assignedStaff || 'Unassigned'}</td>}
+                    {!isUser && <td>{ticket.assignee?.name || 'Unassigned'}</td>}
                     {isUser && <td>{new Date(ticket.createdAt).toLocaleString()}</td>}
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -571,16 +551,16 @@ export default function TicketsPage() {
                 <div className="card" style={{ marginBottom: 12 }}>
                   <h3 className="card-heading">Comments</h3>
                   <div className="comment-list">
-                    {(viewingMeta.comments || []).length === 0 && (
+                    {comments.length === 0 && (
                       <p style={{ color: 'var(--text-3)' }}>No comments yet.</p>
                     )}
-                    {(viewingMeta.comments || []).map((comment) => {
-                      const isOwn = comment.authorEmail === user?.email
+                    {comments.map((comment) => {
+                      const isOwn = comment.user?.email === user?.email
                       const bubbleClass = isOwn ? 'comment-bubble own' : 'comment-bubble'
                       return (
                         <div key={comment.id} className={bubbleClass}>
                           <div className="comment-head">
-                            <span>{comment.authorEmail}</span>
+                            <span>{comment.user?.email}</span>
                             <span>{new Date(comment.createdAt).toLocaleString()}</span>
                           </div>
                           {editingCommentId === comment.id ? (
@@ -597,7 +577,7 @@ export default function TicketsPage() {
                               </div>
                             </>
                           ) : (
-                            <p style={{ marginTop: 8 }}>{comment.text}</p>
+                            <p style={{ marginTop: 8 }}>{comment.content}</p>
                           )}
                           {isOwn && editingCommentId !== comment.id && (
                             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
@@ -653,7 +633,7 @@ export default function TicketsPage() {
                           <select className="form-control" value={assignDraft} onChange={(e) => setAssignDraft(e.target.value)}>
                             <option value="">Select technician</option>
                             {STAFF_OPTIONS.map((staff) => (
-                              <option key={staff.email} value={staff.name}>{staff.name} ({staff.role})</option>
+                              <option key={staff.id} value={staff.id}>{staff.name} ({staff.role})</option>
                             ))}
                           </select>
                         </div>

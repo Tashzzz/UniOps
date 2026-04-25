@@ -1,17 +1,32 @@
 package com.example.uniops.controller;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.uniops.dto.ResourceUsageAnalyticsResponse;
 import com.example.uniops.model.Resource;
 import com.example.uniops.model.Resource.ResourceStatus;
 import com.example.uniops.model.Resource.ResourceType;
 import com.example.uniops.service.ResourceService;
 import com.example.uniops.util.FileUploadUtil;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/resources")
@@ -26,21 +41,19 @@ public class ResourceController {
     public ResponseEntity<List<Resource>> getAllResources(
             @RequestParam(required = false) ResourceStatus status,
             @RequestParam(required = false) ResourceType type,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) Integer maxCapacity,
             @RequestParam(required = false) String search) {
 
-        if (search != null && !search.isBlank()) {
-            return ResponseEntity.ok(resourceService.searchResources(search));
-        }
-        if (status != null && type != null) {
-            return ResponseEntity.ok(resourceService.getAvailableResources());
-        }
-        if (status != null) {
-            return ResponseEntity.ok(resourceService.getAvailableResources());
-        }
-        if (type != null) {
-            return ResponseEntity.ok(resourceService.getResourcesByType(type));
-        }
-        return ResponseEntity.ok(resourceService.getAllResources());
+        return ResponseEntity.ok(resourceService.getResources(status, type, location, minCapacity, maxCapacity, search));
+    }
+
+    @GetMapping("/analytics/usage")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ResourceUsageAnalyticsResponse> getUsageAnalytics(
+            @RequestParam(defaultValue = "30") int days) {
+        return ResponseEntity.ok(resourceService.getUsageAnalytics(days));
     }
 
     @GetMapping("/{id}")
@@ -49,11 +62,13 @@ public class ResourceController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> createResource(@Valid @RequestBody Resource resource) {
         return ResponseEntity.status(201).body(resourceService.createResource(resource));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> updateResource(
             @PathVariable Long id,
             @Valid @RequestBody Resource resource) {
@@ -61,6 +76,7 @@ public class ResourceController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> updateStatus(
             @PathVariable Long id,
             @RequestParam ResourceStatus status) {
@@ -68,6 +84,7 @@ public class ResourceController {
     }
 
     @PostMapping("/{id}/image")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Resource> uploadImage(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file) throws IOException {
@@ -78,6 +95,7 @@ public class ResourceController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
         resourceService.deleteResource(id);
         return ResponseEntity.noContent().build();

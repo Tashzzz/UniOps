@@ -2,17 +2,20 @@ import React, { createContext, useState, useEffect, useContext } from 'react'
 
 const AuthContext = createContext(null)
 
-const SESSION_KEY = 'uniops_user'
+export const SESSION_KEY = 'uniops_user'
+
+export function getSessionUser() {
+  try {
+    const stored = localStorage.getItem(SESSION_KEY)
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    // Restore user from localStorage on page refresh
-    try {
-      const stored = localStorage.getItem(SESSION_KEY)
-      return stored ? JSON.parse(stored) : null
-    } catch {
-      return null
-    }
+    return getSessionUser()
   })
 
   const login = (userData) => {

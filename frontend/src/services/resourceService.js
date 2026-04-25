@@ -3,6 +3,7 @@ import api from './api'
 const resourceService = {
   getAll: (params) => api.get('/resources', { params }),
   getById: (id) => api.get(`/resources/${id}`),
+  getUsageAnalytics: (days = 30) => api.get('/resources/analytics/usage', { params: { days } }),
   create: (data) => api.post('/resources', data),
   update: (id, data) => api.put(`/resources/${id}`, data),
   updateStatus: (id, status) => api.patch(`/resources/${id}/status`, null, { params: { status } }),
