@@ -41,7 +41,14 @@ public class ResourceService {
         Specification<Resource> spec = (root, query, cb) -> cb.conjunction();
 
         if (status != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+            spec = spec.and((root, query, cb) -> {
+                if (status == ResourceStatus.ACTIVE) {
+                    return cb.or(
+                            cb.equal(root.get("status"), ResourceStatus.ACTIVE),
+                            cb.equal(root.get("status"), ResourceStatus.AVAILABLE));
+                }
+                return cb.equal(root.get("status"), status);
+            });
         }
         if (type != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
@@ -73,7 +80,7 @@ public class ResourceService {
     }
 
     public List<Resource> getAvailableResources() {
-        return resourceRepository.findByStatus(ResourceStatus.AVAILABLE);
+        return getResources(ResourceStatus.ACTIVE, null, null, null, null, null);
     }
 
     public List<Resource> getResourcesByType(ResourceType type) {
@@ -103,6 +110,7 @@ public class ResourceService {
         existing.setDescription(updatedResource.getDescription());
         existing.setAvailableFrom(updatedResource.getAvailableFrom());
         existing.setAvailableTo(updatedResource.getAvailableTo());
+        existing.setAvailableDays(updatedResource.getAvailableDays());
         existing.setImageUrl(updatedResource.getImageUrl());
         return resourceRepository.save(existing);
     }
@@ -197,6 +205,14 @@ public class ResourceService {
         }
         if (resource.getDescription() != null) {
             resource.setDescription(resource.getDescription().trim());
+        }
+
+        if (resource.getStatus() == ResourceStatus.AVAILABLE) {
+            resource.setStatus(ResourceStatus.ACTIVE);
+        }
+
+        if (resource.getAvailableDays() == null) {
+            resource.setAvailableDays(Resource.AvailabilityDays.ALL_DAYS);
         }
 
         if (resource.getAvailableFrom() != null

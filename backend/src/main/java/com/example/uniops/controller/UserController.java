@@ -5,6 +5,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider;
 
     // Simple login: match by email (no password needed for student project)
     @PostMapping("/login")
@@ -75,6 +80,38 @@ public class UserController {
             });
 
         return ResponseEntity.ok(userEntity);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("message", "Not authenticated"));
+        }
+
+        String email = authentication.getName();
+        if (authentication.getPrincipal() instanceof OAuth2User oauth2User) {
+            String oauthEmail = oauth2User.getAttribute("email");
+            if (oauthEmail != null && !oauthEmail.isBlank()) {
+                email = oauthEmail;
+            }
+        }
+
+        return userRepository.findByEmail(email.trim().toLowerCase())
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("message", "Authenticated user not found")));
+    }
+
+    @GetMapping("/google")
+    public ResponseEntity<?> googleLoginPath() {
+        boolean enabled = clientRegistrationRepositoryProvider.getIfAvailable() != null;
+        if (!enabled) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "enabled", false,
+                    "message", "Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."));
+        }
+        return ResponseEntity.ok(Map.of(
+                "enabled", true,
+                "url", "/oauth2/authorization/google"));
     }
 
     @GetMapping("/users")

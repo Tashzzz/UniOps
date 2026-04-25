@@ -3,13 +3,20 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
-// import Dashboard from './pages/Dashboard'
+import Dashboard from './pages/Dashboard'
 import ResourcesPage from './pages/ResourcesPage'
 import TicketsPage from './pages/TicketsPage'
-// import BookingsPage from './pages/BookingsPage'
+import BookingsPage from './pages/BookingsPage'
 // import TicketsPage from './pages/TicketsPage'
-// import NotificationsPage from './pages/NotificationsPage'
+import NotificationsPage from './pages/NotificationsPage'
 import LoginPage from './pages/LoginPage'
+
+function RoleRoute({ allowedRoles, children }) {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (!allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />
+  return children
+}
 
 function AppLayout() {
   const { user } = useAuth()
@@ -20,13 +27,27 @@ function AppLayout() {
       <Navbar />
       <main className="main-content">
         <Routes>
+          <Route path="/dashboard"     element={<Dashboard />} />
           <Route path="/resources"     element={<ResourcesPage />} />
-          <Route path="/tickets"       element={<TicketsPage />} />
-          {/* <Route path="/dashboard"     element={<Dashboard />} />
+          <Route
+            path="/tickets"
+            element={(
+              <RoleRoute allowedRoles={['ADMIN', 'STAFF', 'TECHNICIAN', 'STUDENT']}>
+                <TicketsPage />
+              </RoleRoute>
+            )}
+          />
+          <Route
+            path="/bookings"
+            element={(
+              <RoleRoute allowedRoles={['ADMIN', 'STAFF', 'STUDENT']}>
+                <BookingsPage />
+              </RoleRoute>
+            )}
+          />
           
-          <Route path="/bookings"      element={<BookingsPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="*"              element={<Navigate to="/dashboard" replace />} /> */}
+          <Route path="*"              element={<Navigate to="/dashboard" replace />} /> 
         </Routes>
       </main>
     </div>
