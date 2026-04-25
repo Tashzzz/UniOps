@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
 
 const AuthContext = createContext(null)
 
@@ -18,18 +18,20 @@ export function AuthProvider({ children }) {
     return getSessionUser()
   })
 
-  const login = (userData) => {
+  const login = useCallback((userData) => {
     localStorage.setItem(SESSION_KEY, JSON.stringify(userData))
     setUser(userData)
-  }
+  }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem(SESSION_KEY)
     setUser(null)
-  }
+  }, [])
+
+  const value = useMemo(() => ({ user, login, logout }), [user, login, logout])
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
