@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.uniops.model.user;
+import com.example.uniops.model.User;
 import com.example.uniops.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
         }
 
-        Optional<user> userOpt = userRepository.findByEmail(email.trim().toLowerCase());
+        Optional<User> userOpt = userRepository.findByEmail(email.trim().toLowerCase());
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(401).body(Map.of("message", "No account found with that email"));
         }
@@ -53,9 +53,9 @@ public class UserController {
         }
 
         String normalizedEmail = email.trim().toLowerCase();
-        user.Role requestedRole = parseRole(role);
+        User.Role requestedRole = parseRole(role);
 
-        user userEntity = userRepository.findByEmail(normalizedEmail)
+        User userEntity = userRepository.findByEmail(normalizedEmail)
             .map(existing -> {
                 if (requestedRole != null && existing.getRole() != requestedRole) {
                     existing.setRole(requestedRole);
@@ -64,10 +64,10 @@ public class UserController {
                 return existing;
             })
             .orElseGet(() -> {
-                user newUser = user.builder()
+                User newUser = User.builder()
                     .email(normalizedEmail)
                     .name(name != null ? name : normalizedEmail.split("@")[0])
-                    .role(requestedRole != null ? requestedRole : user.Role.STUDENT)
+                    .role(requestedRole != null ? requestedRole : User.Role.STUDENT)
                     .provider("local")
                     .providerId("local-" + System.currentTimeMillis())
                     .build();
@@ -82,12 +82,12 @@ public class UserController {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
-    private user.Role parseRole(String role) {
+    private User.Role parseRole(String role) {
         if (role == null || role.isBlank()) {
             return null;
         }
         try {
-            return user.Role.valueOf(role.trim().toUpperCase());
+            return User.Role.valueOf(role.trim().toUpperCase());
         } catch (IllegalArgumentException ignored) {
             return null;
         }

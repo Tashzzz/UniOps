@@ -25,7 +25,7 @@ export default function Navbar() {
         </div>
         <div>
           <div className="sidebar-logo-text">UniOps</div>
-          <div className="sidebar-logo-sub">Management</div>
+          <div className="sidebar-logo-sub">Smart Campus Management</div>
         </div>
       </div>
 

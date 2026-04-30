@@ -1,14 +1,17 @@
 package com.example.uniops.service;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.uniops.exception.ResourceNotFoundException;
 import com.example.uniops.model.Notification;
 import com.example.uniops.model.Notification.NotificationType;
-import com.example.uniops.model.user;
+import com.example.uniops.model.User;
 import com.example.uniops.repository.NotificationRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor

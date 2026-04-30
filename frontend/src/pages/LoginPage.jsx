@@ -21,19 +21,34 @@ export default function LoginPage() {
   const [loading,  setLoading] = useState(false)
 
   const doLogin = async (emailVal, roleVal) => {
-    setError(''); setLoading(true)
-    try {
-      const res = await axios.post('/api/auth/login-or-register', {
-        email: emailVal,
-        name: emailVal.split('@')[0],
-        role: roleVal,
-      })
-      login(res.data)
-      navigate('/dashboard')
-    } catch (err) {
-      setError(err.response?.data?.message || 'No account found with that email.')
-    } finally { setLoading(false) }
+  setError('')
+  setLoading(true)
+
+  try {
+    const matched = DEMO_ACCOUNTS.find(
+      acc => acc.email.trim().toLowerCase() === emailVal.trim().toLowerCase()
+    )
+
+    if (!matched) {
+      throw new Error('No account found with that email.')
+    }
+
+    const finalRole = roleVal || matched.role
+
+    const res = await axios.post('http://localhost:8081/api/auth/login-or-register', {
+      email: emailVal,
+      name: emailVal.split('@')[0],
+      role: finalRole,
+    })
+
+    login(res.data)
+    navigate('/dashboard')
+  } catch (err) {
+    setError(err.response?.data?.message || err.message || 'No account found with that email.')
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div style={{
