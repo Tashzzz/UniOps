@@ -103,7 +103,7 @@ export default function ResourcesPage() {
       <div className="page-header page-header-row">
         <div>
           <h1>Campus Resources</h1>
-          <p>Manage all campus facilities and assets</p>
+          <p>Discover, manage, and optimize every campus space from one premium workspace.</p>
         </div>
         {canManage && (
           <button className="btn btn-primary" onClick={() => { setEditing(null); setShowModal(true) }}>

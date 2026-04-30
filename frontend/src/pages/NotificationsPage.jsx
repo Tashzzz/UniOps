@@ -94,7 +94,7 @@ export default function NotificationsPage() {
     <div>
       <div className="page-header">
         <h1>Notifications</h1>
-        <p>Stay up to date with your bookings and tickets</p>
+        <p>Stay informed with smart, real-time updates across bookings, tickets, and system activity.</p>
       </div>
       <div className="card">
         <NotificationPanel userId={user?.id}/>

@@ -128,36 +128,53 @@ export default function LoginPage() {
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        padding: '48px', background: 'linear-gradient(150deg, #4f6ef7 0%, #8b5cf6 100%)',
+        padding: '48px',
+        background: 'linear-gradient(155deg, #2f43c8 0%, #5b4de2 45%, #8a5cf6 100%)',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Decorative circles */}
-        <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)', top: -100, left: -100 }} />
-        <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.08)', bottom: -80, right: -80 }} />
-        <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', bottom: 80, left: 40 }} />
+        <div style={{ position: 'absolute', width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 68%)', top: -180, left: -140 }} />
+        <div style={{ position: 'absolute', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)', bottom: -140, right: -110 }} />
+        <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.18)', bottom: 42, left: 24 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 35%)' }} />
 
         <div style={{ position: 'relative', textAlign: 'center', color: '#fff', maxWidth: 340 }}>
           <div style={{
-            width: 72, height: 72, borderRadius: 20, margin: '0 auto 28px',
-            background: 'rgba(255,255,255,0.15)',
-            border: '1px solid rgba(255,255,255,0.25)',
+            width: 78, height: 78, borderRadius: 22, margin: '0 auto 28px',
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.3), rgba(255,255,255,0.12))',
+            border: '1px solid rgba(255,255,255,0.35)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 14px 40px rgba(11, 20, 72, 0.35)',
           }}>
             <Building2 size={34} color="#fff" />
           </div>
           <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 32, fontWeight: 700, letterSpacing: '-0.5px', marginBottom: 12 }}>
             UniOps
           </h1>
-          <p style={{ fontSize: 15, opacity: 0.75, lineHeight: 1.6 }}>
-            Manage campus resources, bookings, and incidents - all in one place.
+          <p style={{ fontSize: 15, opacity: 0.9, lineHeight: 1.6 }}>
+            Premium campus operations platform for resource planning, service requests, and live updates.
           </p>
 
           <div style={{ marginTop: 48, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {['Resource Booking', 'Incident Tickets', 'Real-time Notifications'].map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{f}</span>
+              <div
+                key={f}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  background: 'linear-gradient(145deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08))',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  borderRadius: 12,
+                  padding: '10px 14px',
+                  textAlign: 'left',
+                  boxShadow: '0 8px 22px rgba(20, 24, 84, 0.24)',
+                  backdropFilter: 'blur(5px)',
+                }}
+              >
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c8d4ff', boxShadow: '0 0 0 4px rgba(200, 212, 255, 0.22)', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{f}</span>
               </div>
             ))}
           </div>
@@ -172,9 +189,9 @@ export default function LoginPage() {
       }}>
         <div style={{ marginBottom: 32 }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 22, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>
-            Sign in
+            Welcome to UniOps
           </h2>
-          <p style={{ color: '#9ca3af', fontSize: 14 }}>Enter your campus email to continue</p>
+          <p style={{ color: '#9ca3af', fontSize: 14 }}>Sign in with your campus email to access your workspace.</p>
         </div>
 
         <div style={{ marginBottom: 14 }}>
