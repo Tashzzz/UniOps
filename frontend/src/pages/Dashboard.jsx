@@ -5,6 +5,7 @@ import resourceService from '../services/resourceService'
 import bookingService from '../services/bookingService'
 import ticketService from '../services/ticketService'
 import { format } from 'date-fns'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 
 function statusBadge(status) {
   const map = {
@@ -13,6 +14,19 @@ function statusBadge(status) {
     CANCELLED:'badge-gray',  REJECTED:'badge-red',   MAINTENANCE:'badge-orange',
   }
   return `badge ${map[status] || 'badge-gray'}`
+}
+
+const BOOKING_COLORS = ['#4f6ef7', '#8b5cf6', '#f59e0b', '#9ca3af', '#ef4444']
+const TICKET_COLORS = ['#f59e0b', '#4f6ef7', '#06b6d4', '#22c55e', '#ef4444', '#9ca3af']
+
+function toChartData(items, keys) {
+  return keys.map((key) => {
+    const value = items.filter((item) => item.status === key).length
+    return {
+      name: key.replaceAll('_', ' '),
+      value,
+    }
+  }).filter((entry) => entry.value > 0)
 }
 
 export default function Dashboard() {
@@ -44,6 +58,16 @@ export default function Dashboard() {
   const availableCount = (resources||[]).filter(r => r.status==='ACTIVE' || r.status==='AVAILABLE').length
   const pendingCount   = (bookings ||[]).filter(b => b.status==='PENDING').length
   const openTickets    = (tickets  ||[]).filter(t => t.status==='OPEN'||t.status==='IN_PROGRESS').length
+  const approvedBookings = (bookings || []).filter(b => b.status === 'APPROVED').length
+  const completedBookings = (bookings || []).filter(b => b.status === 'COMPLETED').length
+  const resolvedTickets = (tickets || []).filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length
+  const inProgressTickets = (tickets || []).filter(t => t.status === 'IN_PROGRESS').length
+
+  const utilization = resources.length ? Math.round((availableCount / resources.length) * 100) : 0
+  const bookingApprovalRate = bookings.length ? Math.round((approvedBookings / bookings.length) * 100) : 0
+  const ticketResolutionRate = tickets.length ? Math.round((resolvedTickets / tickets.length) * 100) : 0
+  const bookingChartData = toChartData(bookings, ['APPROVED', 'PENDING', 'COMPLETED', 'CANCELLED', 'REJECTED'])
+  const ticketChartData = toChartData(tickets, ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED', 'MAINTENANCE'])
 
   const stats = [
     { icon: Building2,   cls: 'blue',   value: resources.length, label: 'Total Resources'  },
@@ -55,8 +79,8 @@ export default function Dashboard() {
   return (
     <div>
       <div className="page-header">
-        <h1>Good morning, {user?.name?.split(' ')[0]} 👋</h1>
-        <p>Here's an overview of campus activity today.</p>
+        <h1>Welcome back, {user?.name?.split(' ')[0]}</h1>
+        <p>Your real-time operations snapshot for resources, bookings, and support performance.</p>
       </div>
 
       <div className="stats-grid">
@@ -71,10 +95,121 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+      <div className="dashboard-insights-grid">
+        <div className="dashboard-insight-card">
+          <div className="dashboard-insight-head">
+            <h3>Resource Utilization</h3>
+            <span>{utilization}%</span>
+          </div>
+          <div className="dashboard-meter-track">
+            <div className="dashboard-meter-fill" style={{ width: `${utilization}%` }} />
+          </div>
+          <p>{availableCount} of {resources.length} resources are available right now.</p>
+        </div>
+        <div className="dashboard-insight-card">
+          <div className="dashboard-insight-head">
+            <h3>Booking Approval Rate</h3>
+            <span>{bookingApprovalRate}%</span>
+          </div>
+          <div className="dashboard-meter-track">
+            <div className="dashboard-meter-fill dashboard-meter-fill-booking" style={{ width: `${bookingApprovalRate}%` }} />
+          </div>
+          <p>{approvedBookings} approved bookings with {pendingCount} awaiting review.</p>
+        </div>
+        <div className="dashboard-insight-card">
+          <div className="dashboard-insight-head">
+            <h3>Ticket Resolution Rate</h3>
+            <span>{ticketResolutionRate}%</span>
+          </div>
+          <div className="dashboard-meter-track">
+            <div className="dashboard-meter-fill dashboard-meter-fill-ticket" style={{ width: `${ticketResolutionRate}%` }} />
+          </div>
+          <p>{resolvedTickets} tickets resolved and {inProgressTickets} currently in progress.</p>
+        </div>
+      </div>
+
+      <div className="dashboard-chart-grid">
+        <div className="card dashboard-chart-card">
+          <div className="dashboard-chart-head">
+            <h3>Bookings by Status</h3>
+            <span>{bookings.length} total</span>
+          </div>
+          {bookingChartData.length === 0 ? (
+            <div className="dashboard-chart-empty">No booking data available.</div>
+          ) : (
+            <div className="dashboard-chart-wrap">
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={bookingChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={90}
+                    paddingAngle={3}
+                  >
+                    {bookingChartData.map((entry, index) => (
+                      <Cell key={`${entry.name}-${index}`} fill={BOOKING_COLORS[index % BOOKING_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={28} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className="card dashboard-chart-card">
+          <div className="dashboard-chart-head">
+            <h3>Tickets by Status</h3>
+            <span>{tickets.length} total</span>
+          </div>
+          {ticketChartData.length === 0 ? (
+            <div className="dashboard-chart-empty">No ticket data available.</div>
+          ) : (
+            <div className="dashboard-chart-wrap">
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={ticketChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={90}
+                    paddingAngle={3}
+                  >
+                    {ticketChartData.map((entry, index) => (
+                      <Cell key={`${entry.name}-${index}`} fill={TICKET_COLORS[index % TICKET_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={28} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="dashboard-panels-grid">
         <div className="card">
           <div className="card-heading">
             <CalendarCheck size={16} color="var(--blue)" /> Recent Bookings
+          </div>
+          <div className="dashboard-mini-kpis">
+            <div className="dashboard-mini-kpi">
+              <span>Pending</span>
+              <strong>{pendingCount}</strong>
+            </div>
+            <div className="dashboard-mini-kpi">
+              <span>Approved</span>
+              <strong>{approvedBookings}</strong>
+            </div>
+            <div className="dashboard-mini-kpi">
+              <span>Completed</span>
+              <strong>{completedBookings}</strong>
+            </div>
           </div>
           {errors.bookings
             ? <p style={{ color:'var(--red)', fontSize:13 }}>Could not load bookings.</p>
@@ -101,6 +236,20 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-heading">
             <Ticket size={16} color="var(--red)" /> Recent Tickets
+          </div>
+          <div className="dashboard-mini-kpis">
+            <div className="dashboard-mini-kpi">
+              <span>Open</span>
+              <strong>{openTickets}</strong>
+            </div>
+            <div className="dashboard-mini-kpi">
+              <span>In Progress</span>
+              <strong>{inProgressTickets}</strong>
+            </div>
+            <div className="dashboard-mini-kpi">
+              <span>Resolved</span>
+              <strong>{resolvedTickets}</strong>
+            </div>
           </div>
           {errors.tickets
             ? <p style={{ color:'var(--red)', fontSize:13 }}>Could not load tickets.</p>

@@ -1,6 +1,7 @@
 package com.example.uniops.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -16,4 +17,6 @@ public interface ResourceRepository extends JpaRepository<Resource, Long>, JpaSp
     List<Resource> findByType(ResourceType type);
     List<Resource> findByStatusAndType(ResourceStatus status, ResourceType type);
     List<Resource> findByNameContainingIgnoreCase(String name);
+    boolean existsByNameIgnoreCaseAndLocationIgnoreCase(String name, String location);
+    Optional<Resource> findByNameIgnoreCaseAndLocationIgnoreCase(String name, String location);
 }

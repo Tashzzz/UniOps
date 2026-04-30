@@ -26,14 +26,17 @@ public class SecurityConfig {
 
     private final ObjectProvider<HeaderUserAuthenticationFilter> headerUserAuthenticationFilterProvider;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
     private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider;
 
     public SecurityConfig(
             ObjectProvider<HeaderUserAuthenticationFilter> headerUserAuthenticationFilterProvider,
             OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,
+            OAuth2LoginFailureHandler oAuth2LoginFailureHandler,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider) {
         this.headerUserAuthenticationFilterProvider = headerUserAuthenticationFilterProvider;
         this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
+        this.oAuth2LoginFailureHandler = oAuth2LoginFailureHandler;
         this.clientRegistrationRepositoryProvider = clientRegistrationRepositoryProvider;
     }
 
@@ -57,7 +60,9 @@ public class SecurityConfig {
         }
 
         if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
-            http.oauth2Login(oauth -> oauth.successHandler(oAuth2LoginSuccessHandler));
+            http.oauth2Login(oauth -> oauth
+                    .successHandler(oAuth2LoginSuccessHandler)
+                    .failureHandler(oAuth2LoginFailureHandler));
         }
 
         return http.build();

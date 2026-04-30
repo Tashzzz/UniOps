@@ -137,7 +137,7 @@ export default function BookingsPage() {
       <div className="page-header page-header-row">
         <div>
           <h1>Bookings</h1>
-          <p>{isAdmin ? 'Manage all campus resource bookings' : 'Your resource booking requests'}</p>
+          <p>{isAdmin ? 'Oversee approvals and keep resource schedules running smoothly.' : 'Plan and track your reservations with clear live status updates.'}</p>
         </div>
         {canCreateBooking && (
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>

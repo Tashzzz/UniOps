@@ -124,6 +124,7 @@ public class ResourceService {
 
     public Resource createResource(Resource resource) {
         normalizeAndValidate(resource);
+        validateUniquenessForCreate(resource);
         if (resource.getStatus() == null) {
             resource.setStatus(ResourceStatus.ACTIVE);
         }
@@ -132,6 +133,7 @@ public class ResourceService {
 
     public Resource updateResource(Long id, Resource updatedResource) {
         normalizeAndValidate(updatedResource);
+        validateUniquenessForUpdate(id, updatedResource);
         Resource existing = getResourceById(id);
         existing.setName(updatedResource.getName());
         existing.setType(updatedResource.getType());
@@ -238,6 +240,22 @@ public class ResourceService {
             resource.setDescription(resource.getDescription().trim());
         }
 
+        if (resource.getName() == null || resource.getName().isBlank()) {
+            throw new IllegalArgumentException("Resource name is required.");
+        }
+        if (resource.getLocation() == null || resource.getLocation().isBlank()) {
+            throw new IllegalArgumentException("Resource location is required.");
+        }
+        if (resource.getName().length() > 120) {
+            throw new IllegalArgumentException("Resource name must be 120 characters or fewer.");
+        }
+        if (resource.getLocation().length() > 180) {
+            throw new IllegalArgumentException("Resource location must be 180 characters or fewer.");
+        }
+        if (resource.getDescription() != null && resource.getDescription().length() > 1000) {
+            throw new IllegalArgumentException("Description must be 1000 characters or fewer.");
+        }
+
         if (resource.getStatus() == ResourceStatus.AVAILABLE) {
             resource.setStatus(ResourceStatus.ACTIVE);
         }
@@ -251,9 +269,32 @@ public class ResourceService {
                 && !resource.getAvailableFrom().isBefore(resource.getAvailableTo())) {
             throw new IllegalArgumentException("Availability window is invalid: availableFrom must be before availableTo.");
         }
+        if ((resource.getAvailableFrom() == null) != (resource.getAvailableTo() == null)) {
+            throw new IllegalArgumentException("Both availableFrom and availableTo must be provided together.");
+        }
 
         if (resource.getCapacity() < 1) {
             throw new IllegalArgumentException("Capacity must be at least 1.");
         }
+        if (resource.getCapacity() > 10000) {
+            throw new IllegalArgumentException("Capacity must be 10000 or fewer.");
+        }
+    }
+
+    private void validateUniquenessForCreate(Resource resource) {
+        boolean exists = resourceRepository.existsByNameIgnoreCaseAndLocationIgnoreCase(
+                resource.getName(), resource.getLocation());
+        if (exists) {
+            throw new IllegalArgumentException("A resource with the same name and location already exists.");
+        }
+    }
+
+    private void validateUniquenessForUpdate(Long id, Resource resource) {
+        resourceRepository.findByNameIgnoreCaseAndLocationIgnoreCase(resource.getName(), resource.getLocation())
+                .ifPresent(existing -> {
+                    if (!existing.getId().equals(id)) {
+                        throw new IllegalArgumentException("A resource with the same name and location already exists.");
+                    }
+                });
     }
 }

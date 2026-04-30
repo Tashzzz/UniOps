@@ -13,6 +13,7 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
     ...(initial ? { ...initial, status: initial.status === 'AVAILABLE' ? 'ACTIVE' : initial.status } : {}),
   })
   const [imageFile, setImageFile] = useState(null)
+  const [submitError, setSubmitError] = useState('')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -22,7 +23,67 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit({ ...form, capacity: Number(form.capacity) }, imageFile)
+    setSubmitError('')
+
+    const trimmedName = String(form.name || '').trim()
+    const trimmedLocation = String(form.location || '').trim()
+    const numericCapacity = Number(form.capacity)
+    const hasFrom = Boolean(form.availableFrom)
+    const hasTo = Boolean(form.availableTo)
+
+    if (!trimmedName) {
+      setSubmitError('Resource name is required.')
+      return
+    }
+    if (!trimmedLocation) {
+      setSubmitError('Resource location is required.')
+      return
+    }
+    if (trimmedName.length > 120) {
+      setSubmitError('Resource name must be 120 characters or fewer.')
+      return
+    }
+    if (trimmedLocation.length > 180) {
+      setSubmitError('Resource location must be 180 characters or fewer.')
+      return
+    }
+    if ((form.description || '').length > 1000) {
+      setSubmitError('Description must be 1000 characters or fewer.')
+      return
+    }
+    if (!Number.isInteger(numericCapacity) || numericCapacity < 1 || numericCapacity > 10000) {
+      setSubmitError('Capacity must be a whole number between 1 and 10000.')
+      return
+    }
+    if (hasFrom !== hasTo) {
+      setSubmitError('Please provide both Available From and Available To.')
+      return
+    }
+    if (hasFrom && hasTo && form.availableFrom >= form.availableTo) {
+      setSubmitError('Available From must be earlier than Available To.')
+      return
+    }
+    if (imageFile) {
+      if (!String(imageFile.type || '').startsWith('image/')) {
+        setSubmitError('Selected file must be an image.')
+        return
+      }
+      if (imageFile.size > 5 * 1024 * 1024) {
+        setSubmitError('Image size must be 5MB or less.')
+        return
+      }
+    }
+
+    onSubmit(
+      {
+        ...form,
+        name: trimmedName,
+        location: trimmedLocation,
+        description: String(form.description || '').trim(),
+        capacity: numericCapacity,
+      },
+      imageFile,
+    )
   }
 
   return (
@@ -31,7 +92,7 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
         <div className="form-group">
           <label>Resource Name *</label>
           <input className="form-control" required value={form.name}
-            onChange={e => set('name', e.target.value)} placeholder="e.g. Lecture Hall A" />
+            onChange={e => set('name', e.target.value)} placeholder="e.g. Lecture Hall A" maxLength={120} />
         </div>
         <div className="form-group">
           <label>Type *</label>
@@ -42,7 +103,7 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
         <div className="form-group">
           <label>Location *</label>
           <input className="form-control" required value={form.location}
-            onChange={e => set('location', e.target.value)} placeholder="e.g. Block A, Ground Floor" />
+            onChange={e => set('location', e.target.value)} placeholder="e.g. Block A, Ground Floor" maxLength={180} />
         </div>
         <div className="form-group">
           <label>Capacity *</label>
@@ -75,7 +136,7 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
       <div className="form-group">
         <label>Description</label>
         <textarea className="form-control" rows={3} value={form.description}
-          onChange={e => set('description', e.target.value)} placeholder="Optional description..." />
+          onChange={e => set('description', e.target.value)} placeholder="Optional description..." maxLength={1000} />
       </div>
       <div className="form-group">
         <label>Resource Photo</label>
@@ -95,6 +156,11 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
           </div>
         )}
       </div>
+      {submitError && (
+        <p className="field-error" style={{ marginTop: -6, marginBottom: 10 }}>
+          {submitError}
+        </p>
+      )}
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
         <button type="submit" className="btn btn-primary">
