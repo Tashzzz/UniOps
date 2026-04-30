@@ -120,25 +120,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex',
-      background: 'linear-gradient(135deg, #f0f3ff 0%, #f5f0ff 50%, #f0f7ff 100%)',
-    }}>
+    <div className="login-root">
       {/* Left panel — branding */}
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '48px',
-        background: 'linear-gradient(155deg, #2f43c8 0%, #5b4de2 45%, #8a5cf6 100%)',
-        position: 'relative', overflow: 'hidden',
-      }}>
+      <div className="login-left">
         {/* Decorative circles */}
-        <div style={{ position: 'absolute', width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 68%)', top: -180, left: -140 }} />
-        <div style={{ position: 'absolute', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)', bottom: -140, right: -110 }} />
-        <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.18)', bottom: 42, left: 24 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 35%)' }} />
+        <div className="decor-circle big" />
+        <div className="decor-circle med" />
+        <div className="decor-circle ring" />
+        <div className="decor-fade" />
 
-        <div style={{ position: 'relative', textAlign: 'center', color: '#fff', maxWidth: 340 }}>
+        <div className="brand-box">
           <div style={{
             width: 78, height: 78, borderRadius: 22, margin: '0 auto 28px',
             background: 'linear-gradient(145deg, rgba(255,255,255,0.3), rgba(255,255,255,0.12))',
@@ -182,11 +173,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — login form */}
-      <div style={{
-        width: 420, display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', padding: '48px 40px',
-        background: '#fff',
-      }}>
+      <div className="login-right">
         <div style={{ marginBottom: 32 }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 22, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 6 }}>
             Welcome to UniOps

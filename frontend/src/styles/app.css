@@ -788,6 +788,45 @@ tbody tr:hover td { background: #fafbff; }
   gap: 2px;
 }
 
+/* ── Login page specific tweaks (purple left area only) ───────────────── */
+.login-root {
+  min-height: 100vh;
+  display: flex;
+  background: linear-gradient(135deg, #f0f3ff 0%, #f5f0ff 50%, #f0f7ff 100%);
+}
+.login-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(160deg, #332f9f 0%, #5b4de2 45%, #7b5cf6 100%);
+}
+.login-left .brand-box { max-width: 340px; text-align: center; }
+.decor-circle { position: absolute; border-radius: 50%; filter: blur(6px); opacity: 0.6; }
+.decor-circle.big { width: 460px; height: 460px; top: -180px; left: -140px; background: radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 68%); }
+.decor-circle.med { width: 360px; height: 360px; bottom: -140px; right: -110px; background: radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 70%); }
+.decor-circle.ring { width: 280px; height: 280px; bottom: 42px; left: 24px; border: 1px solid rgba(255,255,255,0.12); background: transparent; }
+.decor-fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 35%); pointer-events: none; }
+.login-left h1, .login-left p { color: #fff; }
+.login-right {
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 40px;
+  background: #fff;
+}
+@media (max-width: 900px) {
+  .login-right { width: 100%; padding: 40px; }
+  .login-left { display: none; }
+  .login-root { background: var(--bg); }
+}
+
 .resource-demand-chip {
   margin-top: 2px;
   border-radius: 999px;
