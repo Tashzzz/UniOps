@@ -378,8 +378,8 @@ export default function TicketsPage() {
           <h1>Ticket Management</h1>
           <p>
             {isUser
-              ? 'Create and track your support tickets.'
-              : 'Monitor all tickets, assign technicians, and complete the workflow.'}
+              ? 'Report issues quickly and follow progress with clarity.'
+              : 'Coordinate triage, assignment, and resolution with an end-to-end workflow view.'}
           </p>
         </div>
         {isUser && (
